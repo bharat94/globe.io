@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
-import { cities, City } from './citiesData';
+import { cities, type City } from './citiesData';
 
 const GlobeComponent = () => {
-  const globeEl = useRef<any>();
+  const globeEl = useRef<any>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [hoverCity, setHoverCity] = useState<City | null>(null);
 
