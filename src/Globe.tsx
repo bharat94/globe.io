@@ -22,7 +22,7 @@ const GlobeComponent = () => {
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/cities');
+        const response = await fetch('http://localhost:3001/api/cities');
         if (!response.ok) {
           throw new Error('Failed to fetch cities');
         }
