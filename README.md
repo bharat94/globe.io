@@ -2,11 +2,15 @@
 
 An interactive 3D globe visualization showcasing major cities around the world with interesting trivia and facts.
 
+![Globe.io Screenshot](screenshot.png)
+
 ## Features
 
 - Interactive 3D globe built with Three.js and react-globe.gl
-- 10 major cities with population data and trivia
-- Click on city markers to learn more
+- 30 major cities from around the world
+- Comprehensive city data including population, area, founding date, timezone, and famous landmarks
+- Click on city markers to learn detailed information
+- Hover tooltips with quick city stats
 - Smooth camera animations when selecting cities
 - Beautiful night-themed globe with atmospheric effects
 
@@ -54,13 +58,42 @@ npm run build
 
 ## Cities Featured
 
+Explore 30 major cities from around the world:
+
+**Asia-Pacific:**
 - Tokyo, Japan
+- Beijing, China
+- Shanghai, China
+- Seoul, South Korea
+- Singapore
+- Bangkok, Thailand
+- Jakarta, Indonesia
+- Mumbai, India
+- Delhi, India
+- Sydney, Australia
+- Melbourne, Australia
+
+**Americas:**
 - New York, USA
+- Los Angeles, USA
+- Toronto, Canada
+- Mexico City, Mexico
+- São Paulo, Brazil
+- Rio de Janeiro, Brazil
+- Buenos Aires, Argentina
+
+**Europe:**
 - London, UK
 - Paris, France
+- Berlin, Germany
+- Rome, Italy
+- Madrid, Spain
+- Barcelona, Spain
+- Amsterdam, Netherlands
+- Moscow, Russia
+
+**Middle East & Africa:**
 - Dubai, UAE
-- Singapore
-- Sydney, Australia
-- Rio de Janeiro, Brazil
-- Mumbai, India
+- Istanbul, Turkey
 - Cairo, Egypt
+- Lagos, Nigeria
