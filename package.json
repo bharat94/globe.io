@@ -6,6 +6,8 @@
   "scripts": {
     "bootstrap": "./bootstrap.sh",
     "start": "./bootstrap.sh",
+    "stop": "./teardown.sh",
+    "stop:all": "./teardown.sh -m",
     "dev": "vite",
     "dev:server": "cd server && npm start",
     "seed": "cd server && npm run seed",

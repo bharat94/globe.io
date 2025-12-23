@@ -93,12 +93,20 @@ Then open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ### Available Scripts
 
-- `npm run bootstrap` or `npm start` - Smart bootstrap script (recommended)
-- `npm run dev` - Start frontend development server
-- `npm run dev:server` - Start backend API server
+**Lifecycle:**
+- `npm start` or `npm run bootstrap` - Smart bootstrap (starts everything)
+- `npm stop` - Stop frontend & backend (keeps MongoDB & data)
+- `npm run stop:all` - Stop everything including MongoDB (keeps data)
+
+**Development:**
+- `npm run dev` - Start frontend development server only
+- `npm run dev:server` - Start backend API server only
 - `npm run seed` - Seed MongoDB database with city data
+
+**Build:**
 - `npm run build` - Build frontend for production
 - `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
 
 ## Technologies Used
 
