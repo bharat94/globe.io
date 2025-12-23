@@ -31,9 +31,13 @@ const GlobeComponent = () => {
         pointAltitude={0.02}
         pointRadius={0.6}
         pointLabel={(d: any) => `
-          <div style="background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; color: white;">
-            <b>${d.name}</b><br/>
-            Population: ${d.population}
+          <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
+            <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
+            <span style="font-size: 13px; opacity: 0.8;">${d.country}</span><br/>
+            <div style="margin-top: 8px; font-size: 12px;">
+              <b>Population:</b> ${d.population}<br/>
+              <b>Area:</b> ${d.area}
+            </div>
           </div>
         `}
         onPointClick={(point: any) => handleCityClick(point as City)}
@@ -51,7 +55,9 @@ const GlobeComponent = () => {
           color: 'white',
           padding: '20px',
           borderRadius: '10px',
-          maxWidth: '350px',
+          maxWidth: '380px',
+          maxHeight: '85vh',
+          overflowY: 'auto',
           boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
           backdropFilter: 'blur(10px)',
         }}>
@@ -72,18 +78,52 @@ const GlobeComponent = () => {
             ×
           </button>
           <h2 style={{
-            margin: '0 0 10px 0',
+            margin: '0 0 5px 0',
             color: selectedCity.color,
             fontSize: '24px'
           }}>
             {selectedCity.name}
           </h2>
-          <p style={{ margin: '5px 0', fontSize: '14px', opacity: 0.8 }}>
-            <b>Population:</b> {selectedCity.population}
+          <p style={{ margin: '0 0 15px 0', fontSize: '14px', opacity: 0.7 }}>
+            {selectedCity.country}
           </p>
-          <p style={{ margin: '10px 0 0 0', lineHeight: '1.5', fontSize: '14px' }}>
-            {selectedCity.trivia}
-          </p>
+
+          <div style={{ fontSize: '13px', marginBottom: '15px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+              <div>
+                <span style={{ opacity: 0.7 }}>Population</span><br/>
+                <b>{selectedCity.population}</b>
+              </div>
+              <div>
+                <span style={{ opacity: 0.7 }}>Area</span><br/>
+                <b>{selectedCity.area}</b>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+              <div>
+                <span style={{ opacity: 0.7 }}>Founded</span><br/>
+                <b>{selectedCity.founded}</b>
+              </div>
+              <div>
+                <span style={{ opacity: 0.7 }}>Timezone</span><br/>
+                <b>{selectedCity.timezone}</b>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <p style={{ margin: '0 0 5px 0', fontSize: '12px', opacity: 0.7 }}>Famous For</p>
+            <p style={{ margin: '0', fontSize: '13px', lineHeight: '1.4' }}>
+              {selectedCity.famousFor}
+            </p>
+          </div>
+
+          <div>
+            <p style={{ margin: '0 0 5px 0', fontSize: '12px', opacity: 0.7 }}>Fun Fact</p>
+            <p style={{ margin: '0', fontSize: '13px', lineHeight: '1.5' }}>
+              {selectedCity.trivia}
+            </p>
+          </div>
         </div>
       )}
 
