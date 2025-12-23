@@ -7,6 +7,14 @@ const GlobeComponent = () => {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [hoverCity, setHoverCity] = useState<City | null>(null);
 
+  // Determine default theme based on local time (6am-6pm = day, 6pm-6am = night)
+  const getDefaultTheme = () => {
+    const hour = new Date().getHours();
+    return hour >= 6 && hour < 18; // true = day mode, false = night mode
+  };
+
+  const [isDayMode, setIsDayMode] = useState(getDefaultTheme());
+
   const handleCityClick = (city: City) => {
     setSelectedCity(city);
 
@@ -20,10 +28,59 @@ const GlobeComponent = () => {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      {/* Day/Night Mode Toggle */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+        background: 'rgba(0, 0, 0, 0.7)',
+        padding: '10px 20px',
+        borderRadius: '25px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        backdropFilter: 'blur(10px)',
+      }}>
+        <span style={{ fontSize: '20px' }}>☀️</span>
+        <button
+          onClick={() => setIsDayMode(!isDayMode)}
+          style={{
+            background: isDayMode ? '#4CAF50' : '#2196F3',
+            border: 'none',
+            borderRadius: '15px',
+            width: '50px',
+            height: '26px',
+            position: 'relative',
+            cursor: 'pointer',
+            transition: 'background 0.3s',
+          }}
+        >
+          <div style={{
+            position: 'absolute',
+            top: '3px',
+            left: isDayMode ? '3px' : '27px',
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            background: 'white',
+            transition: 'left 0.3s',
+          }} />
+        </button>
+        <span style={{ fontSize: '20px' }}>🌙</span>
+      </div>
+
       <Globe
         ref={globeEl}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+        globeImageUrl={isDayMode
+          ? "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+          : "//unpkg.com/three-globe/example/img/earth-night.jpg"
+        }
+        backgroundImageUrl={isDayMode
+          ? "//unpkg.com/three-globe/example/img/night-sky.png"
+          : "//unpkg.com/three-globe/example/img/night-sky.png"
+        }
         pointsData={cities}
         pointLat="lat"
         pointLng="lng"
@@ -42,7 +99,7 @@ const GlobeComponent = () => {
         `}
         onPointClick={(point: any) => handleCityClick(point as City)}
         onPointHover={(point: any) => setHoverCity(point as City | null)}
-        atmosphereColor="#3a228a"
+        atmosphereColor={isDayMode ? "#4d9fff" : "#3a228a"}
         atmosphereAltitude={0.15}
       />
 
