@@ -91,6 +91,88 @@ npm run dev
 
 Then open [http://localhost:5173](http://localhost:5173) in your browser.
 
+## 🔄 Lifecycle Management
+
+### Starting the Application
+
+**Simple Start (Recommended):**
+```bash
+npm start
+```
+
+The bootstrap script intelligently:
+1. ✅ Checks if Node.js and MongoDB are installed
+2. ✅ Installs dependencies (if not already installed)
+3. ✅ Detects if MongoDB is running → Starts it if needed
+4. ✅ Checks if database has data → Seeds only if empty
+5. ✅ Detects if backend is running → Starts only if needed (port 5000)
+6. ✅ Detects if frontend is running → Starts only if needed (port 5173)
+7. ✅ **If everything is already running → Does nothing (no-op)**
+
+**What makes it smart:**
+- Run it 10 times = same result (idempotent)
+- Crashed backend? Just run `npm start` to restart it
+- Already running? It just reports status
+- Clean machine? It sets up everything automatically
+
+### Stopping the Application
+
+**Stop Development Servers:**
+```bash
+npm stop
+```
+- Stops frontend (port 5173)
+- Stops backend (port 5000)
+- **Keeps MongoDB running** (faster restart)
+- **Preserves all data**
+
+**Stop Everything (Including Database):**
+```bash
+npm run stop:all
+```
+- Stops frontend
+- Stops backend
+- Stops MongoDB
+- **Still preserves all data** (just stops the process)
+
+**Safety Features:**
+- Graceful shutdown (5-second timeout)
+- Force kill if process doesn't stop
+- Never deletes data
+- Shows status summary after teardown
+
+### Common Workflows
+
+**First Time Setup:**
+```bash
+git clone https://github.com/bharat94/globe.io.git
+cd globe.io
+npm start
+# ✅ Everything set up automatically!
+```
+
+**Daily Development:**
+```bash
+# Morning
+npm start  # Starts what's needed, skips what's already running
+
+# Working...
+
+# Evening
+npm stop   # Stops servers, keeps MongoDB for faster restart
+```
+
+**Complete Reset (Rare):**
+```bash
+npm run stop:all  # Stop everything
+npm start         # Fresh start
+```
+
+**Restart Services:**
+```bash
+npm stop && npm start
+```
+
 ### Available Scripts
 
 **Lifecycle:**
@@ -108,6 +190,120 @@ Then open [http://localhost:5173](http://localhost:5173) in your browser.
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
 
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    User's Browser                        │
+│                 http://localhost:5173                    │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           │ HTTP Requests
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│              React Frontend (Vite)                       │
+│  - Globe.gl 3D visualization                            │
+│  - Day/night mode toggle                                │
+│  - City detail panels                                   │
+│  Port: 5173                                             │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           │ fetch('/api/cities')
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│           Express REST API Server                        │
+│  - GET /api/cities                                      │
+│  - GET /api/cities/:name                                │
+│  - GET /api/cities/near/:lng/:lat                       │
+│  Port: 5000                                             │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           │ Mongoose ODM
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│                MongoDB Database                          │
+│  Database: globe-io                                     │
+│  Collection: cities (30 documents)                      │
+│  - Geospatial indexes (2dsphere)                        │
+│  - Document structure matches City schema               │
+│  Port: 27017                                            │
+└─────────────────────────────────────────────────────────┘
+```
+
+## 🛠️ Troubleshooting
+
+### MongoDB Issues
+
+**"MongoDB connection refused"**
+```bash
+# Check if MongoDB is running
+lsof -Pi :27017 -sTCP:LISTEN
+
+# Start MongoDB manually
+# macOS:
+brew services start mongodb-community
+
+# Linux:
+sudo systemctl start mongod
+```
+
+**"Database not seeding"**
+```bash
+# Manually seed the database
+npm run seed
+
+# Check database
+mongosh
+> use globe-io
+> db.cities.countDocuments()  // Should return 30
+```
+
+### Port Conflicts
+
+**"Port 5173 already in use"**
+```bash
+# Find and kill the process
+lsof -ti:5173 | xargs kill -9
+```
+
+**"Port 5000 already in use"**
+```bash
+# Find and kill the process
+lsof -ti:5000 | xargs kill -9
+```
+
+### General Issues
+
+**"npm start does nothing"**
+```bash
+# Make scripts executable
+chmod +x bootstrap.sh teardown.sh
+
+# Run directly
+./bootstrap.sh
+```
+
+**"Backend can't connect to MongoDB"**
+```bash
+# Check MongoDB is running
+brew services list | grep mongodb
+
+# Check connection string
+cat server/.env  # Should have MONGODB_URI=mongodb://localhost:27017/globe-io
+```
+
+**Clean Slate Reset:**
+```bash
+# Stop everything
+npm run stop:all
+
+# Clear database (optional - will be re-seeded)
+mongosh globe-io --eval "db.cities.deleteMany({})"
+
+# Fresh start
+npm start
+```
+
 ## Technologies Used
 
 ### Frontend
@@ -122,6 +318,11 @@ Then open [http://localhost:5173](http://localhost:5173) in your browser.
 - MongoDB with Mongoose
 - RESTful API
 - Geospatial indexing for location queries
+
+### DevOps
+- Smart bootstrap script (automatic setup)
+- Graceful teardown script (safe shutdown)
+- Idempotent operations (run multiple times safely)
 
 ## How to Use
 
