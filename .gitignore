@@ -25,3 +25,11 @@ dist-ssr
 
 # Playwright test outputs
 .playwright-mcp/
+
+# Server
+server/.env
+server/node_modules
+
+# Database
+data/
+*.log

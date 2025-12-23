@@ -4,7 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "bootstrap": "./bootstrap.sh",
+    "start": "./bootstrap.sh",
     "dev": "vite",
+    "dev:server": "cd server && npm start",
+    "seed": "cd server && npm run seed",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

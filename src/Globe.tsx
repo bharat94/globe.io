@@ -1,11 +1,14 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Globe from 'react-globe.gl';
-import { cities, type City } from './citiesData';
+import type { City } from './citiesData';
 
 const GlobeComponent = () => {
   const globeEl = useRef<any>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [hoverCity, setHoverCity] = useState<City | null>(null);
+  const [cities, setCities] = useState<City[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Determine default theme based on local time (6am-6pm = day, 6pm-6am = night)
   const getDefaultTheme = () => {
@@ -14,6 +17,27 @@ const GlobeComponent = () => {
   };
 
   const [isDayMode, setIsDayMode] = useState(getDefaultTheme());
+
+  // Fetch cities from API
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/cities');
+        if (!response.ok) {
+          throw new Error('Failed to fetch cities');
+        }
+        const data = await response.json();
+        setCities(data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching cities:', err);
+        setError('Failed to load cities. Please make sure the server is running.');
+        setLoading(false);
+      }
+    };
+
+    fetchCities();
+  }, []);
 
   const handleCityClick = (city: City) => {
     setSelectedCity(city);
@@ -25,6 +49,49 @@ const GlobeComponent = () => {
       );
     }
   };
+
+  if (loading) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#0a0a0a',
+        color: 'white',
+        fontSize: '18px'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🌍</div>
+          <div>Loading cities...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#0a0a0a',
+        color: 'white',
+        fontSize: '18px'
+      }}>
+        <div style={{ textAlign: 'center', maxWidth: '500px', padding: '20px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
+          <div style={{ marginBottom: '10px', color: '#ff6b6b' }}>{error}</div>
+          <div style={{ fontSize: '14px', opacity: 0.7 }}>
+            Make sure MongoDB is running and the server is started.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>

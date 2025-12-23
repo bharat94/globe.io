@@ -19,35 +19,101 @@ An interactive 3D globe visualization showcasing major cities around the world w
 ### Prerequisites
 
 - Node.js (v16 or higher)
+- MongoDB (local installation or MongoDB Atlas)
 - npm or yarn
 
-### Installation
+### Quick Start (Recommended)
+
+The easiest way to get started is using the bootstrap script:
 
 ```bash
-npm install
+npm run bootstrap
 ```
 
-### Development
+This script will automatically:
+- ✅ Check if MongoDB is running (start it if needed)
+- ✅ Install all dependencies
+- ✅ Create and seed the database
+- ✅ Start the backend API server
+- ✅ Start the frontend development server
 
+Then open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Manual Setup
+
+If you prefer to set things up manually:
+
+#### 1. Install MongoDB
+
+**macOS:**
+```bash
+brew tap mongodb/brew
+brew install mongodb-community
+brew services start mongodb-community
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt-get install mongodb
+sudo systemctl start mongod
+```
+
+**Windows:**
+Download from [MongoDB Download Center](https://www.mongodb.com/try/download/community)
+
+#### 2. Install Dependencies
+
+```bash
+# Install frontend dependencies
+npm install
+
+# Install backend dependencies
+cd server && npm install
+```
+
+#### 3. Seed Database
+
+```bash
+npm run seed
+```
+
+#### 4. Start Development Servers
+
+In one terminal:
+```bash
+npm run dev:server
+```
+
+In another terminal:
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) to view it in your browser.
+Then open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### Build
+### Available Scripts
 
-```bash
-npm run build
-```
+- `npm run bootstrap` or `npm start` - Smart bootstrap script (recommended)
+- `npm run dev` - Start frontend development server
+- `npm run dev:server` - Start backend API server
+- `npm run seed` - Seed MongoDB database with city data
+- `npm run build` - Build frontend for production
+- `npm run preview` - Preview production build
 
 ## Technologies Used
 
+### Frontend
 - React 18
 - TypeScript
 - Vite
 - react-globe.gl
 - Three.js
+
+### Backend
+- Node.js & Express
+- MongoDB with Mongoose
+- RESTful API
+- Geospatial indexing for location queries
 
 ## How to Use
 
