@@ -1,6 +1,9 @@
 import { useRef, useState, useEffect } from 'react';
 import Globe from 'react-globe.gl';
 import type { City } from './citiesData';
+import type { ViewType } from './types/views';
+import { VIEWS } from './types/views';
+import ViewSelector from './components/ViewSelector';
 
 const GlobeComponent = () => {
   const globeEl = useRef<any>(null);
@@ -10,6 +13,7 @@ const GlobeComponent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showLearnMore, setShowLearnMore] = useState(false);
+  const [currentView, setCurrentView] = useState<ViewType>('explorer');
 
   // Determine default theme based on local time (6am-6pm = day, 6pm-6am = night)
   const getDefaultTheme = () => {
@@ -19,26 +23,51 @@ const GlobeComponent = () => {
 
   const [isDayMode, setIsDayMode] = useState(getDefaultTheme());
 
-  // Fetch cities from API
+  // Fetch data based on current view
   useEffect(() => {
-    const fetchCities = async () => {
+    const fetchViewData = async () => {
+      setLoading(true);
+      setError(null);
+      setSelectedCity(null); // Clear selected city when switching views
+
       try {
-        const response = await fetch('http://localhost:3001/api/cities');
-        if (!response.ok) {
-          throw new Error('Failed to fetch cities');
+        // View-specific data fetching
+        switch (currentView) {
+          case 'explorer':
+            const response = await fetch('http://localhost:3001/api/cities');
+            if (!response.ok) {
+              throw new Error('Failed to fetch cities');
+            }
+            const data = await response.json();
+            setCities(data);
+            break;
+
+          case 'weather':
+            // TODO: Implement weather data fetching
+            setCities([]);
+            break;
+
+          case 'flights':
+            // TODO: Implement flights data fetching
+            setCities([]);
+            break;
+
+          case 'pollution':
+            // TODO: Implement pollution data fetching
+            setCities([]);
+            break;
         }
-        const data = await response.json();
-        setCities(data);
+
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching cities:', err);
-        setError('Failed to load cities. Please make sure the server is running.');
+        console.error(`Error fetching ${currentView} data:`, err);
+        setError(`Failed to load ${currentView} data. Please make sure the server is running.`);
         setLoading(false);
       }
     };
 
-    fetchCities();
-  }, []);
+    fetchViewData();
+  }, [currentView]); // Re-fetch when view changes
 
   const handleCityClick = (city: City) => {
     setSelectedCity(city);
@@ -50,6 +79,10 @@ const GlobeComponent = () => {
         1000
       );
     }
+  };
+
+  const handleViewChange = (view: ViewType) => {
+    setCurrentView(view);
   };
 
   if (loading) {
@@ -97,6 +130,13 @@ const GlobeComponent = () => {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      {/* View Selector */}
+      <ViewSelector
+        views={VIEWS}
+        currentView={currentView}
+        onViewChange={handleViewChange}
+      />
+
       {/* Day/Night Mode Toggle */}
       <div style={{
         position: 'absolute',
@@ -150,7 +190,8 @@ const GlobeComponent = () => {
           ? "//unpkg.com/three-globe/example/img/night-sky.png"
           : "//unpkg.com/three-globe/example/img/night-sky.png"
         }
-        pointsData={cities}
+        // Only show points in explorer view
+        pointsData={currentView === 'explorer' ? cities : []}
         pointLat="lat"
         pointLng="lng"
         pointColor="color"
@@ -166,13 +207,13 @@ const GlobeComponent = () => {
             </div>
           </div>
         `}
-        onPointClick={(point: any) => handleCityClick(point as City)}
-        onPointHover={(point: any) => setHoverCity(point as City | null)}
+        onPointClick={(point: any) => currentView === 'explorer' && handleCityClick(point as City)}
+        onPointHover={(point: any) => currentView === 'explorer' && setHoverCity(point as City | null)}
         atmosphereColor={isDayMode ? "#4d9fff" : "#3a228a"}
         atmosphereAltitude={0.15}
       />
 
-      {selectedCity && (
+      {currentView === 'explorer' && selectedCity && (
         <div style={{
           position: 'absolute',
           top: '20px',
@@ -358,12 +399,12 @@ const GlobeComponent = () => {
         maxWidth: '300px'
       }}>
         <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>
-          🌍 Interactive City Globe
+          {VIEWS.find(v => v.id === currentView)?.icon} {VIEWS.find(v => v.id === currentView)?.name} View
         </h3>
         <p style={{ margin: '5px 0', fontSize: '13px' }}>
-          {hoverCity
+          {currentView === 'explorer' && hoverCity
             ? `Hovering: ${hoverCity.name}`
-            : 'Click on any city marker to learn more!'}
+            : VIEWS.find(v => v.id === currentView)?.description}
         </p>
         <p style={{ margin: '5px 0', fontSize: '12px', opacity: 0.7 }}>
           Drag to rotate • Scroll to zoom
