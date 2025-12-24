@@ -251,7 +251,7 @@ const GlobeComponent = () => {
           if (currentView === 'explorer') {
             setHoverCity(point as City | null);
             // Change cursor to pointer when hovering over a city
-            const canvas = globeEl.current?.scene()?.canvas;
+            const canvas = document.querySelector('canvas');
             if (canvas) {
               canvas.style.cursor = point ? 'pointer' : 'grab';
             }
