@@ -10,6 +10,15 @@ export interface City {
   famousFor: string;
   trivia: string;
   color: string;
+  elevation?: number;
+  nickname?: string;
+  primaryLanguages?: string[];
+  currency?: string;
+  airportCodes?: string[];
+  climateType?: string;
+  mainIndustries?: string[];
+  demonym?: string;
+  bestTimeToVisit?: string;
 }
 
 export const cities: City[] = [

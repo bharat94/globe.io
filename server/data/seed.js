@@ -16,7 +16,16 @@ const citiesData = [
     timezone: "UTC+9",
     famousFor: "Shibuya Crossing, Tokyo Skytree, Imperial Palace",
     trivia: "Tokyo is the world's most populous metropolitan area and has more Michelin-starred restaurants than any other city.",
-    color: "#ff6b6b"
+    color: "#ff6b6b",
+    elevation: 40,
+    nickname: "The Big Mikan",
+    primaryLanguages: ["Japanese"],
+    currency: "JPY - Japanese Yen",
+    airportCodes: ["NRT", "HND"],
+    climateType: "Humid Subtropical",
+    mainIndustries: ["Technology", "Finance", "Manufacturing", "Retail"],
+    demonym: "Tokyoite",
+    bestTimeToVisit: "March-May, September-November"
   },
   {
     name: "New York",
@@ -29,7 +38,16 @@ const citiesData = [
     timezone: "UTC-5",
     famousFor: "Statue of Liberty, Times Square, Central Park",
     trivia: "The Statue of Liberty was a gift from France in 1886. New York City has over 800 languages spoken, making it the most linguistically diverse city in the world.",
-    color: "#4ecdc4"
+    color: "#4ecdc4",
+    elevation: 10,
+    nickname: "The Big Apple",
+    primaryLanguages: ["English"],
+    currency: "USD - US Dollar",
+    airportCodes: ["JFK", "LGA", "EWR"],
+    climateType: "Humid Subtropical",
+    mainIndustries: ["Finance", "Media", "Technology", "Fashion"],
+    demonym: "New Yorker",
+    bestTimeToVisit: "April-June, September-November"
   },
   {
     name: "London",
@@ -42,7 +60,16 @@ const citiesData = [
     timezone: "UTC+0",
     famousFor: "Big Ben, Tower Bridge, Buckingham Palace",
     trivia: "London has been a major settlement for over 2,000 years. The London Underground is the world's oldest underground railway, opening in 1863.",
-    color: "#95e1d3"
+    color: "#95e1d3",
+    elevation: 11,
+    nickname: "The Big Smoke",
+    primaryLanguages: ["English"],
+    currency: "GBP - British Pound",
+    airportCodes: ["LHR", "LGW", "STN"],
+    climateType: "Temperate Maritime",
+    mainIndustries: ["Finance", "Tourism", "Creative Industries", "Technology"],
+    demonym: "Londoner",
+    bestTimeToVisit: "May-September"
   },
   {
     name: "Paris",
@@ -55,7 +82,16 @@ const citiesData = [
     timezone: "UTC+1",
     famousFor: "Eiffel Tower, Louvre Museum, Arc de Triomphe",
     trivia: "Paris is known as the 'City of Light' due to its leading role during the Age of Enlightenment and its early adoption of street lighting.",
-    color: "#feca57"
+    color: "#feca57",
+    elevation: 35,
+    nickname: "City of Light",
+    primaryLanguages: ["French"],
+    currency: "EUR - Euro",
+    airportCodes: ["CDG", "ORY"],
+    climateType: "Temperate Oceanic",
+    mainIndustries: ["Tourism", "Fashion", "Luxury Goods", "Finance"],
+    demonym: "Parisian",
+    bestTimeToVisit: "April-June, September-October"
   },
   {
     name: "Dubai",
@@ -68,7 +104,16 @@ const citiesData = [
     timezone: "UTC+4",
     famousFor: "Burj Khalifa, Palm Jumeirah, Dubai Mall",
     trivia: "The Burj Khalifa in Dubai is the tallest building in the world at 828 meters. Dubai has no street addresses; locations are described by landmarks.",
-    color: "#ff9ff3"
+    color: "#ff9ff3",
+    elevation: 16,
+    nickname: "City of Gold",
+    primaryLanguages: ["Arabic", "English"],
+    currency: "AED - UAE Dirham",
+    airportCodes: ["DXB", "DWC"],
+    climateType: "Hot Desert",
+    mainIndustries: ["Tourism", "Real Estate", "Finance", "Trade"],
+    demonym: "Dubaian",
+    bestTimeToVisit: "November-March"
   },
   {
     name: "Singapore",
@@ -81,7 +126,16 @@ const citiesData = [
     timezone: "UTC+8",
     famousFor: "Marina Bay Sands, Gardens by the Bay, Merlion",
     trivia: "Singapore is a city-state and one of only three surviving city-states in the world. It has one of the highest standards of living globally.",
-    color: "#54a0ff"
+    color: "#54a0ff",
+    elevation: 15,
+    nickname: "Lion City",
+    primaryLanguages: ["English", "Malay", "Mandarin", "Tamil"],
+    currency: "SGD - Singapore Dollar",
+    airportCodes: ["SIN"],
+    climateType: "Tropical Rainforest",
+    mainIndustries: ["Finance", "Technology", "Manufacturing", "Shipping"],
+    demonym: "Singaporean",
+    bestTimeToVisit: "February-April"
   },
   {
     name: "Sydney",
@@ -94,7 +148,16 @@ const citiesData = [
     timezone: "UTC+10",
     famousFor: "Sydney Opera House, Harbour Bridge, Bondi Beach",
     trivia: "The Sydney Opera House took 14 years to build and was completed in 1973. Sydney Harbour is one of the world's largest natural harbours.",
-    color: "#48dbfb"
+    color: "#48dbfb",
+    elevation: 58,
+    nickname: "Harbour City",
+    primaryLanguages: ["English"],
+    currency: "AUD - Australian Dollar",
+    airportCodes: ["SYD"],
+    climateType: "Humid Subtropical",
+    mainIndustries: ["Finance", "Tourism", "Technology", "Education"],
+    demonym: "Sydneysider",
+    bestTimeToVisit: "September-November, March-May"
   },
   {
     name: "Rio de Janeiro",
@@ -107,7 +170,16 @@ const citiesData = [
     timezone: "UTC-3",
     famousFor: "Christ the Redeemer, Copacabana Beach, Sugarloaf Mountain",
     trivia: "The Christ the Redeemer statue is one of the New Seven Wonders of the World. Rio hosted the Summer Olympics in 2016.",
-    color: "#00d2d3"
+    color: "#00d2d3",
+    elevation: 11,
+    nickname: "Marvelous City",
+    primaryLanguages: ["Portuguese"],
+    currency: "BRL - Brazilian Real",
+    airportCodes: ["GIG", "SDU"],
+    climateType: "Tropical Savanna",
+    mainIndustries: ["Tourism", "Oil & Gas", "Entertainment", "Services"],
+    demonym: "Carioca",
+    bestTimeToVisit: "December-March"
   },
   {
     name: "Mumbai",
@@ -120,7 +192,16 @@ const citiesData = [
     timezone: "UTC+5:30",
     famousFor: "Gateway of India, Marine Drive, Bollywood",
     trivia: "Mumbai is the financial capital of India and home to Bollywood, the world's largest film industry by number of films produced.",
-    color: "#ff6348"
+    color: "#ff6348",
+    elevation: 14,
+    nickname: "City of Dreams",
+    primaryLanguages: ["Marathi", "Hindi", "English"],
+    currency: "INR - Indian Rupee",
+    airportCodes: ["BOM"],
+    climateType: "Tropical Wet and Dry",
+    mainIndustries: ["Finance", "Entertainment", "Technology", "Textiles"],
+    demonym: "Mumbaikar",
+    bestTimeToVisit: "November-February"
   },
   {
     name: "Cairo",
@@ -133,7 +214,16 @@ const citiesData = [
     timezone: "UTC+2",
     famousFor: "Pyramids of Giza, Sphinx, Egyptian Museum",
     trivia: "Cairo is home to the Great Pyramid of Giza, the only surviving Wonder of the Ancient World. The city has been continuously inhabited for over 1,000 years.",
-    color: "#ffa502"
+    color: "#ffa502",
+    elevation: 23,
+    nickname: "City of a Thousand Minarets",
+    primaryLanguages: ["Arabic"],
+    currency: "EGP - Egyptian Pound",
+    airportCodes: ["CAI"],
+    climateType: "Hot Desert",
+    mainIndustries: ["Tourism", "Textiles", "Food Processing", "Construction"],
+    demonym: "Cairene",
+    bestTimeToVisit: "October-April"
   },
   {
     name: "Beijing",
@@ -146,7 +236,16 @@ const citiesData = [
     timezone: "UTC+8",
     famousFor: "Great Wall, Forbidden City, Temple of Heaven",
     trivia: "Beijing has been the capital of China for over 800 years and hosted the 2008 Summer Olympics and 2022 Winter Olympics.",
-    color: "#ff7979"
+    color: "#ff7979",
+    elevation: 43,
+    nickname: "The Forbidden City",
+    primaryLanguages: ["Mandarin"],
+    currency: "CNY - Chinese Yuan",
+    airportCodes: ["PEK", "PKX"],
+    climateType: "Humid Continental",
+    mainIndustries: ["Government", "Technology", "Manufacturing", "Tourism"],
+    demonym: "Beijinger",
+    bestTimeToVisit: "April-May, September-October"
   },
   {
     name: "Shanghai",
@@ -159,7 +258,16 @@ const citiesData = [
     timezone: "UTC+8",
     famousFor: "The Bund, Oriental Pearl Tower, Yu Garden",
     trivia: "Shanghai has the world's busiest container port and the second-tallest building in the world, the Shanghai Tower at 632 meters.",
-    color: "#6c5ce7"
+    color: "#6c5ce7",
+    elevation: 4,
+    nickname: "Pearl of the Orient",
+    primaryLanguages: ["Mandarin", "Shanghainese"],
+    currency: "CNY - Chinese Yuan",
+    airportCodes: ["PVG", "SHA"],
+    climateType: "Humid Subtropical",
+    mainIndustries: ["Finance", "Manufacturing", "Shipping", "Technology"],
+    demonym: "Shanghainese",
+    bestTimeToVisit: "March-May, September-November"
   },
   {
     name: "Moscow",
@@ -172,7 +280,16 @@ const citiesData = [
     timezone: "UTC+3",
     famousFor: "Red Square, Kremlin, St. Basil's Cathedral",
     trivia: "Moscow's Metro system is one of the deepest in the world and is renowned for its ornate stations, often called 'underground palaces'.",
-    color: "#a29bfe"
+    color: "#a29bfe",
+    elevation: 156,
+    nickname: "The Third Rome",
+    primaryLanguages: ["Russian"],
+    currency: "RUB - Russian Ruble",
+    airportCodes: ["SVO", "DME", "VKO"],
+    climateType: "Humid Continental",
+    mainIndustries: ["Finance", "Energy", "Technology", "Manufacturing"],
+    demonym: "Muscovite",
+    bestTimeToVisit: "May-September"
   },
   {
     name: "Istanbul",
@@ -185,7 +302,16 @@ const citiesData = [
     timezone: "UTC+3",
     famousFor: "Hagia Sophia, Blue Mosque, Grand Bazaar",
     trivia: "Istanbul is the only city in the world located on two continents (Europe and Asia), separated by the Bosphorus Strait.",
-    color: "#fd79a8"
+    color: "#fd79a8",
+    elevation: 39,
+    nickname: "City on Two Continents",
+    primaryLanguages: ["Turkish"],
+    currency: "TRY - Turkish Lira",
+    airportCodes: ["IST", "SAW"],
+    climateType: "Mediterranean",
+    mainIndustries: ["Tourism", "Finance", "Textiles", "Manufacturing"],
+    demonym: "Istanbulite",
+    bestTimeToVisit: "April-May, September-November"
   },
   {
     name: "Mexico City",
@@ -198,7 +324,16 @@ const citiesData = [
     timezone: "UTC-6",
     famousFor: "Zócalo, Frida Kahlo Museum, Teotihuacan",
     trivia: "Mexico City is built on the ruins of the Aztec city of Tenochtitlan and is sinking at a rate of up to 50 cm per year due to groundwater extraction.",
-    color: "#fdcb6e"
+    color: "#fdcb6e",
+    elevation: 2240,
+    nickname: "City of Palaces",
+    primaryLanguages: ["Spanish"],
+    currency: "MXN - Mexican Peso",
+    airportCodes: ["MEX"],
+    climateType: "Subtropical Highland",
+    mainIndustries: ["Finance", "Manufacturing", "Tourism", "Services"],
+    demonym: "Chilango",
+    bestTimeToVisit: "March-May"
   },
   {
     name: "São Paulo",
@@ -211,7 +346,16 @@ const citiesData = [
     timezone: "UTC-3",
     famousFor: "Paulista Avenue, São Paulo Museum of Art, Ibirapuera Park",
     trivia: "São Paulo is the largest city in the Southern Hemisphere and has the world's largest Japanese population outside Japan.",
-    color: "#e17055"
+    color: "#e17055",
+    elevation: 760,
+    nickname: "Sampa",
+    primaryLanguages: ["Portuguese"],
+    currency: "BRL - Brazilian Real",
+    airportCodes: ["GRU", "CGH"],
+    climateType: "Humid Subtropical",
+    mainIndustries: ["Finance", "Manufacturing", "Technology", "Services"],
+    demonym: "Paulistano",
+    bestTimeToVisit: "March-May, September-November"
   },
   {
     name: "Los Angeles",
@@ -224,7 +368,16 @@ const citiesData = [
     timezone: "UTC-8",
     famousFor: "Hollywood Sign, Griffith Observatory, Santa Monica Pier",
     trivia: "Los Angeles is the entertainment capital of the world and has the nickname 'City of Angels'. It's also one of the most ethnically diverse cities in the US.",
-    color: "#74b9ff"
+    color: "#74b9ff",
+    elevation: 93,
+    nickname: "City of Angels",
+    primaryLanguages: ["English", "Spanish"],
+    currency: "USD - US Dollar",
+    airportCodes: ["LAX", "BUR", "LGB"],
+    climateType: "Mediterranean",
+    mainIndustries: ["Entertainment", "Technology", "Tourism", "Manufacturing"],
+    demonym: "Angeleno",
+    bestTimeToVisit: "March-May, September-November"
   },
   {
     name: "Bangkok",
@@ -237,7 +390,16 @@ const citiesData = [
     timezone: "UTC+7",
     famousFor: "Grand Palace, Wat Pho, Floating Markets",
     trivia: "Bangkok holds the Guinness World Record for the longest city name. Its ceremonial name has 168 letters in Thai.",
-    color: "#55efc4"
+    color: "#55efc4",
+    elevation: 1.5,
+    nickname: "City of Angels",
+    primaryLanguages: ["Thai"],
+    currency: "THB - Thai Baht",
+    airportCodes: ["BKK", "DMK"],
+    climateType: "Tropical Savanna",
+    mainIndustries: ["Tourism", "Finance", "Manufacturing", "Services"],
+    demonym: "Bangkokian",
+    bestTimeToVisit: "November-February"
   },
   {
     name: "Seoul",
@@ -250,7 +412,16 @@ const citiesData = [
     timezone: "UTC+9",
     famousFor: "Gyeongbokgung Palace, N Seoul Tower, Gangnam",
     trivia: "Seoul is one of the most technologically advanced cities in the world, with the fastest average internet speed globally.",
-    color: "#81ecec"
+    color: "#81ecec",
+    elevation: 38,
+    nickname: "The Miracle on the Han River",
+    primaryLanguages: ["Korean"],
+    currency: "KRW - South Korean Won",
+    airportCodes: ["ICN", "GMP"],
+    climateType: "Humid Continental",
+    mainIndustries: ["Technology", "Finance", "Manufacturing", "Entertainment"],
+    demonym: "Seoulite",
+    bestTimeToVisit: "March-May, September-November"
   },
   {
     name: "Jakarta",
@@ -263,7 +434,16 @@ const citiesData = [
     timezone: "UTC+7",
     famousFor: "National Monument, Thousand Islands, Old Town",
     trivia: "Jakarta is the largest city in Southeast Asia and is sinking faster than any other major city in the world, at up to 25 cm per year.",
-    color: "#fab1a0"
+    color: "#fab1a0",
+    elevation: 8,
+    nickname: "The Big Durian",
+    primaryLanguages: ["Indonesian"],
+    currency: "IDR - Indonesian Rupiah",
+    airportCodes: ["CGK", "HLP"],
+    climateType: "Tropical Monsoon",
+    mainIndustries: ["Finance", "Manufacturing", "Trade", "Services"],
+    demonym: "Jakartan",
+    bestTimeToVisit: "May-September"
   },
   {
     name: "Delhi",
@@ -276,7 +456,16 @@ const citiesData = [
     timezone: "UTC+5:30",
     famousFor: "Red Fort, India Gate, Qutub Minar",
     trivia: "Delhi has been continuously inhabited since the 6th century BC and has served as the capital of various kingdoms and empires throughout history.",
-    color: "#ff6b81"
+    color: "#ff6b81",
+    elevation: 216,
+    nickname: "City of Djinns",
+    primaryLanguages: ["Hindi", "English", "Punjabi"],
+    currency: "INR - Indian Rupee",
+    airportCodes: ["DEL"],
+    climateType: "Humid Subtropical",
+    mainIndustries: ["Government", "Technology", "Tourism", "Manufacturing"],
+    demonym: "Delhiite",
+    bestTimeToVisit: "October-March"
   },
   {
     name: "Lagos",
@@ -289,7 +478,16 @@ const citiesData = [
     timezone: "UTC+1",
     famousFor: "Lekki Conservation Centre, National Museum, Victoria Island",
     trivia: "Lagos is Africa's largest city by population and is projected to become one of the world's largest cities by 2050.",
-    color: "#f8a5c2"
+    color: "#f8a5c2",
+    elevation: 41,
+    nickname: "Lasgidi",
+    primaryLanguages: ["English", "Yoruba"],
+    currency: "NGN - Nigerian Naira",
+    airportCodes: ["LOS"],
+    climateType: "Tropical Savanna",
+    mainIndustries: ["Finance", "Trade", "Manufacturing", "Technology"],
+    demonym: "Lagosian",
+    bestTimeToVisit: "November-March"
   },
   {
     name: "Buenos Aires",
@@ -302,7 +500,16 @@ const citiesData = [
     timezone: "UTC-3",
     famousFor: "Casa Rosada, La Boca, Tango Dancing",
     trivia: "Buenos Aires is known as the 'Paris of South America' for its European architecture and is the birthplace of tango dancing.",
-    color: "#a29bfe"
+    color: "#a29bfe",
+    elevation: 25,
+    nickname: "Paris of South America",
+    primaryLanguages: ["Spanish"],
+    currency: "ARS - Argentine Peso",
+    airportCodes: ["EZE", "AEP"],
+    climateType: "Humid Subtropical",
+    mainIndustries: ["Finance", "Manufacturing", "Tourism", "Agriculture"],
+    demonym: "Porteño",
+    bestTimeToVisit: "September-November, March-May"
   },
   {
     name: "Toronto",
@@ -315,7 +522,16 @@ const citiesData = [
     timezone: "UTC-5",
     famousFor: "CN Tower, Royal Ontario Museum, Toronto Islands",
     trivia: "Toronto is one of the most multicultural cities in the world, with over 200 ethnic groups and more than 160 languages spoken.",
-    color: "#dfe6e9"
+    color: "#dfe6e9",
+    elevation: 76,
+    nickname: "The 6ix",
+    primaryLanguages: ["English"],
+    currency: "CAD - Canadian Dollar",
+    airportCodes: ["YYZ", "YTZ"],
+    climateType: "Humid Continental",
+    mainIndustries: ["Finance", "Technology", "Film", "Tourism"],
+    demonym: "Torontonian",
+    bestTimeToVisit: "May-October"
   },
   {
     name: "Berlin",
@@ -328,7 +544,16 @@ const citiesData = [
     timezone: "UTC+1",
     famousFor: "Brandenburg Gate, Berlin Wall, Museum Island",
     trivia: "Berlin has more bridges than Venice and is home to the world's largest Turkish population outside Turkey.",
-    color: "#636e72"
+    color: "#636e72",
+    elevation: 34,
+    nickname: "The Grey City",
+    primaryLanguages: ["German"],
+    currency: "EUR - Euro",
+    airportCodes: ["BER"],
+    climateType: "Temperate Oceanic",
+    mainIndustries: ["Technology", "Creative Industries", "Manufacturing", "Tourism"],
+    demonym: "Berliner",
+    bestTimeToVisit: "May-September"
   },
   {
     name: "Rome",
@@ -341,7 +566,16 @@ const citiesData = [
     timezone: "UTC+1",
     famousFor: "Colosseum, Vatican City, Trevi Fountain",
     trivia: "Rome is called the 'Eternal City' and has been continuously inhabited for over 2,800 years. It contains a country within it - Vatican City.",
-    color: "#b2bec3"
+    color: "#b2bec3",
+    elevation: 21,
+    nickname: "The Eternal City",
+    primaryLanguages: ["Italian"],
+    currency: "EUR - Euro",
+    airportCodes: ["FCO", "CIA"],
+    climateType: "Mediterranean",
+    mainIndustries: ["Tourism", "Government", "Fashion", "Film"],
+    demonym: "Roman",
+    bestTimeToVisit: "April-June, September-October"
   },
   {
     name: "Madrid",
@@ -354,7 +588,16 @@ const citiesData = [
     timezone: "UTC+1",
     famousFor: "Prado Museum, Royal Palace, Plaza Mayor",
     trivia: "Madrid is the highest capital city in Europe at 667 meters above sea level and has more bars per capita than any other European city.",
-    color: "#ffeaa7"
+    color: "#ffeaa7",
+    elevation: 667,
+    nickname: "The Bear and the Strawberry Tree",
+    primaryLanguages: ["Spanish"],
+    currency: "EUR - Euro",
+    airportCodes: ["MAD"],
+    climateType: "Hot-Summer Mediterranean",
+    mainIndustries: ["Tourism", "Finance", "Technology", "Manufacturing"],
+    demonym: "Madrileño",
+    bestTimeToVisit: "March-May, September-November"
   },
   {
     name: "Melbourne",
@@ -367,7 +610,16 @@ const citiesData = [
     timezone: "UTC+10",
     famousFor: "Federation Square, Great Ocean Road, Australian Open",
     trivia: "Melbourne is known as Australia's cultural capital and has been ranked the world's most liveable city multiple times.",
-    color: "#00b894"
+    color: "#00b894",
+    elevation: 31,
+    nickname: "Marvellous Melbourne",
+    primaryLanguages: ["English"],
+    currency: "AUD - Australian Dollar",
+    airportCodes: ["MEL"],
+    climateType: "Temperate Oceanic",
+    mainIndustries: ["Finance", "Technology", "Education", "Tourism"],
+    demonym: "Melburnian",
+    bestTimeToVisit: "March-May, September-November"
   },
   {
     name: "Amsterdam",
@@ -380,7 +632,16 @@ const citiesData = [
     timezone: "UTC+1",
     famousFor: "Canal Ring, Anne Frank House, Van Gogh Museum",
     trivia: "Amsterdam has more than 165 canals and 1,281 bridges. It also has more bicycles than people, with over 880,000 bikes in the city.",
-    color: "#0984e3"
+    color: "#0984e3",
+    elevation: -2,
+    nickname: "Venice of the North",
+    primaryLanguages: ["Dutch", "English"],
+    currency: "EUR - Euro",
+    airportCodes: ["AMS"],
+    climateType: "Temperate Oceanic",
+    mainIndustries: ["Finance", "Tourism", "Technology", "Trade"],
+    demonym: "Amsterdammer",
+    bestTimeToVisit: "April-May, September-October"
   },
   {
     name: "Barcelona",
@@ -393,7 +654,16 @@ const citiesData = [
     timezone: "UTC+1",
     famousFor: "Sagrada Familia, Park Güell, La Rambla",
     trivia: "Barcelona is home to 9 UNESCO World Heritage Sites and the famous Sagrada Familia has been under construction for over 140 years.",
-    color: "#00cec9"
+    color: "#00cec9",
+    elevation: 12,
+    nickname: "The Rose of Fire",
+    primaryLanguages: ["Catalan", "Spanish"],
+    currency: "EUR - Euro",
+    airportCodes: ["BCN"],
+    climateType: "Hot-Summer Mediterranean",
+    mainIndustries: ["Tourism", "Technology", "Manufacturing", "Fashion"],
+    demonym: "Barcelonan",
+    bestTimeToVisit: "April-June, September-October"
   }
 ];
 
@@ -424,7 +694,16 @@ async function seedDatabase() {
       timezone: city.timezone,
       famousFor: city.famousFor,
       trivia: city.trivia,
-      color: city.color
+      color: city.color,
+      elevation: city.elevation,
+      nickname: city.nickname,
+      primaryLanguages: city.primaryLanguages,
+      currency: city.currency,
+      airportCodes: city.airportCodes,
+      climateType: city.climateType,
+      mainIndustries: city.mainIndustries,
+      demonym: city.demonym,
+      bestTimeToVisit: city.bestTimeToVisit
     }));
 
     await City.insertMany(transformedCities);

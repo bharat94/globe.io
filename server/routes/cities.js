@@ -19,7 +19,16 @@ router.get('/', async (req, res) => {
       timezone: city.timezone,
       famousFor: city.famousFor,
       trivia: city.trivia,
-      color: city.color
+      color: city.color,
+      elevation: city.elevation,
+      nickname: city.nickname,
+      primaryLanguages: city.primaryLanguages,
+      currency: city.currency,
+      airportCodes: city.airportCodes,
+      climateType: city.climateType,
+      mainIndustries: city.mainIndustries,
+      demonym: city.demonym,
+      bestTimeToVisit: city.bestTimeToVisit
     }));
 
     res.json(transformedCities);
