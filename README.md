@@ -8,7 +8,7 @@ An interactive 3D globe visualization with multiple views to explore cities, wea
 
 - 🌍 **Multi-View System** - Switch between Explorer, Weather, Flights, and Pollution views
 - 🎨 **Interactive 3D Globe** - Built with Three.js and react-globe.gl
-- 🏙️ **30 Major Cities** - Comprehensive data from around the world
+- 🏙️ **50 Major Cities** - Comprehensive data from around the world
 - 📊 **Rich City Information** - Population, area, elevation, climate, languages, currency, and more
 - 🎯 **Click & Explore** - Interactive markers with detailed information panels
 - 🌓 **Day/Night Mode** - Toggle between day and night globe themes
@@ -60,15 +60,17 @@ npm run stop:all
 
 ### Cities Featured
 
-Explore **30 major cities** from around the world:
+Explore **50 major cities** from around the world:
 
-**Asia-Pacific:** Tokyo, Beijing, Shanghai, Seoul, Singapore, Bangkok, Jakarta, Mumbai, Delhi, Sydney, Melbourne
+**Asia-Pacific:** Tokyo, Beijing, Shanghai, Seoul, Singapore, Bangkok, Jakarta, Mumbai, Delhi, Sydney, Melbourne, Kuala Lumpur, Manila, Hanoi, Karachi, Auckland
 
-**Americas:** New York, Los Angeles, Toronto, Mexico City, São Paulo, Rio de Janeiro, Buenos Aires
+**Americas:** New York, Los Angeles, Toronto, Mexico City, São Paulo, Rio de Janeiro, Buenos Aires, Bogotá, Lima, Havana
 
 **Europe:** London, Paris, Berlin, Rome, Madrid, Barcelona, Amsterdam, Moscow
 
-**Middle East & Africa:** Dubai, Istanbul, Cairo, Lagos
+**Middle East:** Dubai, Istanbul, Tehran, Riyadh, Baghdad, Tel Aviv
+
+**Africa:** Cairo, Lagos, Johannesburg, Nairobi, Casablanca, Addis Ababa, Accra, Dar es Salaam, Kinshasa, Luanda
 
 ---
 
@@ -109,7 +111,7 @@ Explore **30 major cities** from around the world:
 ┌─────────────────────────────────────────────────────────┐
 │                MongoDB Database                          │
 │  Database: globe-io                                     │
-│  Collection: cities (30 documents)                      │
+│  Collection: cities (50 documents)                      │
 │  - Geospatial indexes (2dsphere)                        │
 │  - Extended city data (9 additional fields)             │
 │  Port: 27017                                            │
