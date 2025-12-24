@@ -88,27 +88,24 @@ const GlobeComponent = () => {
 
   // Create glowing orb for each city marker
   const createGlowingOrb = useCallback((city: any) => {
-    // Debug: log what we're receiving
-    console.log('Creating orb for:', city.name, 'Color:', city.color);
-
-    // Parse city color - ensure it's properly set
-    const cityColor = new THREE.Color(city.color || '#ffffff');
+    // Use the color directly from the city data
+    const color = city.color || '#ffffff';
 
     // Main solid orb - using MeshBasicMaterial so color shows without needing lights
     const orbGeometry = new THREE.SphereGeometry(0.8, 32, 32);
     const orbMaterial = new THREE.MeshBasicMaterial({
-      color: cityColor
+      color: color  // Use the hex string directly
     });
     const orb = new THREE.Mesh(orbGeometry, orbMaterial);
 
     // Add point light inside the orb for glow effect on surroundings
-    const light = new THREE.PointLight(cityColor, 0.6, 5);
+    const light = new THREE.PointLight(color, 0.6, 5);
     orb.add(light);
 
     // Outer glow halo with city color for enhanced glow
     const glowGeometry = new THREE.SphereGeometry(1.0, 32, 32);
     const glowMaterial = new THREE.MeshBasicMaterial({
-      color: cityColor,
+      color: color,
       transparent: true,
       opacity: 0.3,
       side: THREE.BackSide
@@ -230,7 +227,7 @@ const GlobeComponent = () => {
         pointLng="lng"
         pointAltitude={0.01}
         pointThreeObject={createGlowingOrb}
-        pointThreeObjectExtend={true}
+        pointThreeObjectExtend={false}
         pointLabel={(d: any) => `
           <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
             <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
