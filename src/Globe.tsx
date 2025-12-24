@@ -256,31 +256,24 @@ const GlobeComponent = () => {
             <button
               onClick={() => setShowLearnMore(!showLearnMore)}
               style={{
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                color: 'white',
-                padding: '10px 15px',
-                borderRadius: '6px',
+                background: 'transparent',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.7)',
+                padding: '8px 0',
                 cursor: 'pointer',
-                width: '100%',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                transition: 'all 0.3s'
+                fontSize: '13px',
+                textDecoration: 'underline',
+                transition: 'color 0.2s',
+                outline: 'none'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 1)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
               }}
             >
-              <span>Learn More</span>
-              <span style={{ transform: showLearnMore ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>
-                ▼
-              </span>
+              {showLearnMore ? '− Hide Details' : '+ Learn More'}
             </button>
 
             {showLearnMore && (
