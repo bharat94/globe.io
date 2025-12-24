@@ -330,7 +330,3 @@ When adding features:
 ### License
 
 MIT
-
-### Author
-
-Built with [Claude Code](https://claude.com/claude-code)
