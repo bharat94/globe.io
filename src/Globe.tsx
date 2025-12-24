@@ -163,10 +163,10 @@ const GlobeComponent = () => {
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
       <style>{`
         canvas {
-          cursor: grab !important;
+          cursor: grab;
         }
         canvas:active {
-          cursor: grabbing !important;
+          cursor: grabbing;
         }
       `}</style>
       {/* View Selector */}
