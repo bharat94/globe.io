@@ -87,28 +87,31 @@ const GlobeComponent = () => {
   };
 
   // Create glowing orb for each city marker
-  const createGlowingOrb = useCallback((city: City) => {
+  const createGlowingOrb = useCallback((city: any) => {
+    // Parse city color
+    const cityColor = new THREE.Color(city.color);
+
     // Main solid orb with emissive glow
     const orbGeometry = new THREE.SphereGeometry(0.5, 32, 32);
     const orbMaterial = new THREE.MeshStandardMaterial({
-      color: city.color,
-      emissive: city.color,
-      emissiveIntensity: 0.8,
-      metalness: 0.1,
-      roughness: 0.2
+      color: cityColor,
+      emissive: cityColor,
+      emissiveIntensity: 0.6,
+      metalness: 0.2,
+      roughness: 0.3
     });
     const orb = new THREE.Mesh(orbGeometry, orbMaterial);
 
     // Add point light inside the orb for actual glow
-    const light = new THREE.PointLight(city.color, 0.5, 5);
+    const light = new THREE.PointLight(cityColor, 0.4, 4);
     orb.add(light);
 
-    // Outer glow halo (subtle)
-    const glowGeometry = new THREE.SphereGeometry(0.65, 32, 32);
+    // Outer glow halo with city color
+    const glowGeometry = new THREE.SphereGeometry(0.7, 32, 32);
     const glowMaterial = new THREE.MeshBasicMaterial({
-      color: city.color,
+      color: cityColor,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.15,
       side: THREE.BackSide
     });
     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
