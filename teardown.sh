@@ -92,6 +92,17 @@ stop_mongodb() {
 
 # Parse command line arguments
 STOP_MONGODB=false
+
+# Handle long options
+for arg in "$@"; do
+    case $arg in
+        --all)
+            STOP_MONGODB=true
+            shift
+            ;;
+    esac
+done
+
 while getopts "m" opt; do
     case $opt in
         m)
@@ -99,8 +110,8 @@ while getopts "m" opt; do
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
-            echo "Usage: $0 [-m]"
-            echo "  -m    Also stop MongoDB (default: leave running)"
+            echo "Usage: $0 [-m|--all]"
+            echo "  -m, --all    Also stop MongoDB (default: leave running)"
             exit 1
             ;;
     esac
@@ -124,7 +135,7 @@ if [ "$STOP_MONGODB" = true ]; then
     echo ""
 else
     if port_in_use $MONGODB_PORT; then
-        echo -e "${BLUE}ℹ️  MongoDB is still running (use -m flag to stop it)${NC}"
+        echo -e "${BLUE}ℹ️  MongoDB is still running (use -m or --all flag to stop it)${NC}"
         echo -e "${GREEN}💾 Database data is preserved${NC}"
         echo ""
     fi
