@@ -161,6 +161,14 @@ const GlobeComponent = () => {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      <style>{`
+        canvas {
+          cursor: grab !important;
+        }
+        canvas:active {
+          cursor: grabbing !important;
+        }
+      `}</style>
       {/* View Selector */}
       <ViewSelector
         views={VIEWS}
@@ -239,7 +247,16 @@ const GlobeComponent = () => {
           </div>
         `}
         onPointClick={(point: any) => currentView === 'explorer' && handleCityClick(point as City)}
-        onPointHover={(point: any) => currentView === 'explorer' && setHoverCity(point as City | null)}
+        onPointHover={(point: any) => {
+          if (currentView === 'explorer') {
+            setHoverCity(point as City | null);
+            // Change cursor to pointer when hovering over a city
+            const canvas = globeEl.current?.scene()?.canvas;
+            if (canvas) {
+              canvas.style.cursor = point ? 'pointer' : 'grab';
+            }
+          }
+        }}
         atmosphereColor={isDayMode ? "#4d9fff" : "#3a228a"}
         atmosphereAltitude={0.15}
       />
