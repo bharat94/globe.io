@@ -225,9 +225,9 @@ const GlobeComponent = () => {
         pointsData={currentView === 'explorer' ? cities : []}
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={0.01}
-        pointThreeObject={createGlowingOrb}
-        pointThreeObjectExtend={false}
+        pointAltitude={0.02}
+        pointColor={(d: any) => d.color || '#ffffff'}
+        pointRadius={1.2}
         pointLabel={(d: any) => `
           <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
             <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
