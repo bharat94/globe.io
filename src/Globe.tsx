@@ -9,6 +9,7 @@ const GlobeComponent = () => {
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showLearnMore, setShowLearnMore] = useState(false);
 
   // Determine default theme based on local time (6am-6pm = day, 6pm-6am = night)
   const getDefaultTheme = () => {
@@ -41,6 +42,7 @@ const GlobeComponent = () => {
 
   const handleCityClick = (city: City) => {
     setSelectedCity(city);
+    setShowLearnMore(false); // Reset Learn More when selecting a new city
 
     if (globeEl.current) {
       globeEl.current.pointOfView(
@@ -247,6 +249,106 @@ const GlobeComponent = () => {
             <p style={{ margin: '0', fontSize: '13px', lineHeight: '1.5' }}>
               {selectedCity.trivia}
             </p>
+          </div>
+
+          {/* Learn More Expandable Section */}
+          <div style={{ marginTop: '15px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '15px' }}>
+            <button
+              onClick={() => setShowLearnMore(!showLearnMore)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                padding: '10px 15px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                width: '100%',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              }}
+            >
+              <span>Learn More</span>
+              <span style={{ transform: showLearnMore ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>
+                ▼
+              </span>
+            </button>
+
+            {showLearnMore && (
+              <div style={{ marginTop: '15px', fontSize: '13px', animation: 'fadeIn 0.3s' }}>
+                {selectedCity.nickname && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ opacity: 0.7 }}>Nickname</span><br/>
+                    <b>{selectedCity.nickname}</b>
+                  </div>
+                )}
+
+                {selectedCity.elevation !== undefined && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ opacity: 0.7 }}>Elevation</span><br/>
+                    <b>{selectedCity.elevation}m above sea level</b>
+                  </div>
+                )}
+
+                {selectedCity.climateType && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ opacity: 0.7 }}>Climate</span><br/>
+                    <b>{selectedCity.climateType}</b>
+                  </div>
+                )}
+
+                {selectedCity.demonym && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ opacity: 0.7 }}>Residents Called</span><br/>
+                    <b>{selectedCity.demonym}</b>
+                  </div>
+                )}
+
+                {selectedCity.primaryLanguages && selectedCity.primaryLanguages.length > 0 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ opacity: 0.7 }}>Languages</span><br/>
+                    <b>{selectedCity.primaryLanguages.join(', ')}</b>
+                  </div>
+                )}
+
+                {selectedCity.currency && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ opacity: 0.7 }}>Currency</span><br/>
+                    <b>{selectedCity.currency}</b>
+                  </div>
+                )}
+
+                {selectedCity.airportCodes && selectedCity.airportCodes.length > 0 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ opacity: 0.7 }}>Airport Codes</span><br/>
+                    <b>{selectedCity.airportCodes.join(', ')}</b>
+                  </div>
+                )}
+
+                {selectedCity.mainIndustries && selectedCity.mainIndustries.length > 0 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ opacity: 0.7 }}>Main Industries</span><br/>
+                    <b>{selectedCity.mainIndustries.join(', ')}</b>
+                  </div>
+                )}
+
+                {selectedCity.bestTimeToVisit && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <span style={{ opacity: 0.7 }}>Best Time to Visit</span><br/>
+                    <b>{selectedCity.bestTimeToVisit}</b>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

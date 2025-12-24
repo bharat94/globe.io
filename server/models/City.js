@@ -49,6 +49,43 @@ const citySchema = new mongoose.Schema({
   color: {
     type: String,
     required: true
+  },
+  // Additional information fields
+  elevation: {
+    type: Number, // meters above sea level
+    required: false
+  },
+  nickname: {
+    type: String,
+    required: false
+  },
+  primaryLanguages: {
+    type: [String],
+    required: false
+  },
+  currency: {
+    type: String,
+    required: false
+  },
+  airportCodes: {
+    type: [String],
+    required: false
+  },
+  climateType: {
+    type: String,
+    required: false
+  },
+  mainIndustries: {
+    type: [String],
+    required: false
+  },
+  demonym: {
+    type: String,
+    required: false
+  },
+  bestTimeToVisit: {
+    type: String,
+    required: false
   }
 }, {
   timestamps: true // Adds createdAt and updatedAt fields
