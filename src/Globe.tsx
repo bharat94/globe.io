@@ -1,5 +1,6 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import Globe from 'react-globe.gl';
+import * as THREE from 'three';
 import type { City } from './citiesData';
 import type { ViewType } from './types/views';
 import { VIEWS } from './types/views';
@@ -84,6 +85,31 @@ const GlobeComponent = () => {
   const handleViewChange = (view: ViewType) => {
     setCurrentView(view);
   };
+
+  // Create glowing orb for each city marker
+  const createGlowingOrb = useCallback((city: City) => {
+    const obj = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 16, 16),
+      new THREE.MeshBasicMaterial({
+        color: city.color,
+        transparent: true,
+        opacity: 0.9
+      })
+    );
+
+    // Add a glowing halo effect
+    const glowGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: city.color,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.BackSide
+    });
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    obj.add(glow);
+
+    return obj;
+  }, []);
 
   if (loading) {
     return (
@@ -194,9 +220,9 @@ const GlobeComponent = () => {
         pointsData={currentView === 'explorer' ? cities : []}
         pointLat="lat"
         pointLng="lng"
-        pointColor="color"
-        pointAltitude={0.02}
-        pointRadius={0.6}
+        pointAltitude={0.01}
+        pointThreeObject={createGlowingOrb}
+        pointThreeObjectExtend={true}
         pointLabel={(d: any) => `
           <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
             <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
