@@ -3,8 +3,14 @@ import Globe from 'react-globe.gl';
 import * as THREE from 'three';
 import type { City } from './citiesData';
 import type { ViewType } from './types/views';
+import type { WeatherDataPoint } from './types/weather';
 import { VIEWS } from './types/views';
 import ViewSelector from './components/ViewSelector';
+import TimeSlider from './components/weather/TimeSlider';
+import WeatherPanel from './components/weather/WeatherPanel';
+import WeatherLegend from './components/weather/WeatherLegend';
+import { useWeatherData } from './hooks/useWeatherData';
+import { getTemperatureColor } from './utils/weatherUtils';
 
 const GlobeComponent = () => {
   const globeEl = useRef<any>(null);
@@ -15,6 +21,10 @@ const GlobeComponent = () => {
   const [error, setError] = useState<string | null>(null);
   const [showLearnMore, setShowLearnMore] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('explorer');
+  const [selectedWeatherLocation, setSelectedWeatherLocation] = useState<WeatherDataPoint | null>(null);
+
+  // Weather data hook
+  const weatherData = useWeatherData();
 
   // Determine default theme based on local time (6am-6pm = day, 6pm-6am = night)
   const getDefaultTheme = () => {
@@ -30,6 +40,7 @@ const GlobeComponent = () => {
       setLoading(true);
       setError(null);
       setSelectedCity(null); // Clear selected city when switching views
+      setSelectedWeatherLocation(null); // Clear weather selection
 
       try {
         // View-specific data fetching
@@ -44,9 +55,10 @@ const GlobeComponent = () => {
             break;
 
           case 'weather':
-            // TODO: Implement weather data fetching
+            // Weather data is handled by useWeatherData hook
             setCities([]);
-            break;
+            setLoading(false); // Weather hook handles its own loading
+            return; // Exit early, don't set loading to false below
 
           case 'flights':
             // TODO: Implement flights data fetching
@@ -85,6 +97,36 @@ const GlobeComponent = () => {
   const handleViewChange = (view: ViewType) => {
     setCurrentView(view);
   };
+
+  // Handle click on weather heatmap point
+  const handleWeatherPointClick = useCallback(async (point: any) => {
+    if (point && point.lat !== undefined && point.lng !== undefined) {
+      // Get detailed data for this location
+      const locationData = await weatherData.getLocationData(point.lat, point.lng);
+      if (locationData) {
+        setSelectedWeatherLocation(locationData);
+      } else {
+        // Use the heatmap point data directly
+        setSelectedWeatherLocation({
+          lat: point.lat,
+          lng: point.lng,
+          cityName: point.cityName,
+          country: point.country,
+          year: weatherData.selectedYear,
+          month: weatherData.selectedMonth,
+          temperature: point.temperature || { avg: 0, min: 0, max: 0 }
+        });
+      }
+
+      // Animate camera to location
+      if (globeEl.current) {
+        globeEl.current.pointOfView(
+          { lat: point.lat, lng: point.lng, altitude: 2 },
+          1000
+        );
+      }
+    }
+  }, [weatherData]);
 
   // Create glowing orb for each city marker
   const createGlowingOrb = useCallback((city: any) => {
@@ -259,6 +301,31 @@ const GlobeComponent = () => {
         }}
         atmosphereColor={isDayMode ? "#4d9fff" : "#3a228a"}
         atmosphereAltitude={0.15}
+        // Weather heatmap layer (only in weather view)
+        heatmapsData={currentView === 'weather' ? [weatherData.heatmapData] : []}
+        heatmapPointLat="lat"
+        heatmapPointLng="lng"
+        heatmapPointWeight="weight"
+        heatmapBandwidth={3}
+        heatmapColorSaturation={2.5}
+        heatmapBaseAltitude={0.01}
+        heatmapTopAltitude={0.12}
+        heatmapsTransitionDuration={800}
+        // Weather point markers for clicking
+        hexBinPointsData={currentView === 'weather' ? weatherData.heatmapData : []}
+        hexBinPointLat="lat"
+        hexBinPointLng="lng"
+        hexBinPointWeight={() => 1}
+        hexAltitude={0.01}
+        hexBinResolution={3}
+        hexTopColor={(d: any) => getTemperatureColor(d.points[0]?.temperature?.avg || 20)}
+        hexSideColor={(d: any) => getTemperatureColor(d.points[0]?.temperature?.avg || 20)}
+        hexBinMerge={true}
+        onHexClick={(hex: any) => {
+          if (currentView === 'weather' && hex.points && hex.points.length > 0) {
+            handleWeatherPointClick(hex.points[0]);
+          }
+        }}
       />
 
       {currentView === 'explorer' && selectedCity && (
@@ -435,6 +502,31 @@ const GlobeComponent = () => {
         </div>
       )}
 
+      {/* Weather View UI */}
+      {currentView === 'weather' && (
+        <>
+          <TimeSlider
+            minYear={weatherData.yearRange.minYear}
+            maxYear={weatherData.yearRange.maxYear}
+            currentYear={weatherData.selectedYear}
+            currentMonth={weatherData.selectedMonth}
+            isPlaying={weatherData.isPlaying}
+            onYearChange={weatherData.setSelectedYear}
+            onMonthChange={weatherData.setSelectedMonth}
+            onPlayPause={weatherData.togglePlayback}
+            onSpeedChange={weatherData.setPlaybackSpeed}
+            playbackSpeed={weatherData.playbackSpeed}
+          />
+          <WeatherLegend />
+          {selectedWeatherLocation && (
+            <WeatherPanel
+              location={selectedWeatherLocation}
+              onClose={() => setSelectedWeatherLocation(null)}
+            />
+          )}
+        </>
+      )}
+
       <div style={{
         position: 'absolute',
         bottom: '20px',
@@ -452,10 +544,14 @@ const GlobeComponent = () => {
         <p style={{ margin: '5px 0', fontSize: '13px' }}>
           {currentView === 'explorer' && hoverCity
             ? `Hovering: ${hoverCity.name}`
+            : currentView === 'weather'
+            ? `${weatherData.loading ? 'Loading...' : `Showing ${weatherData.heatmapData.length} locations`}`
             : VIEWS.find(v => v.id === currentView)?.description}
         </p>
         <p style={{ margin: '5px 0', fontSize: '12px', opacity: 0.7 }}>
-          Drag to rotate • Scroll to zoom
+          {currentView === 'weather'
+            ? 'Click locations • Drag slider to change time'
+            : 'Drag to rotate • Scroll to zoom'}
         </p>
       </div>
     </div>
