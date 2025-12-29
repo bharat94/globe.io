@@ -116,8 +116,8 @@ router.get('/grid/:year/:month', async (req, res) => {
       return res.status(400).json({ message: 'Year out of range (1940-present)' });
     }
 
-    // Validate resolution
-    const validResolutions = [10, 5, 2.5, 2, 1];
+    // Validate resolution (support finer grids for zoomed views)
+    const validResolutions = [10, 5, 2.5, 2, 1, 0.5];
     const actualResolution = validResolutions.includes(resolution) ? resolution : 10;
 
     // Generate grid points (either global or viewport)

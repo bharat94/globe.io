@@ -25,6 +25,8 @@ const GlobeComponent = () => {
 
   // Weather data hook
   const weatherData = useWeatherData();
+  const setViewportRef = useRef(weatherData.setViewport);
+  setViewportRef.current = weatherData.setViewport;
 
   // Determine default theme based on local time (6am-6pm = day, 6pm-6am = night)
   const getDefaultTheme = () => {
@@ -39,31 +41,60 @@ const GlobeComponent = () => {
     if (!globeEl.current || currentView !== 'weather') return;
 
     const globe = globeEl.current;
+    let lastAltitude = -1;
 
-    // Set up camera change listener
-    const handleCameraChange = () => {
-      const pov = globe.pointOfView();
-      if (pov) {
-        weatherData.setViewport({
-          lat: pov.lat || 0,
-          lng: pov.lng || 0,
-          altitude: pov.altitude || 3
+    // Get controls - this gives us direct access to OrbitControls
+    const controls = globe.controls();
+
+    if (!controls) {
+      console.warn('No controls available');
+      return;
+    }
+
+    const updateFromControls = () => {
+      // OrbitControls stores the actual camera on .object
+      const camera = controls.object;
+      if (!camera) return;
+
+      // Calculate distance from camera to origin (center of globe)
+      const distance = camera.position.length();
+
+      // Globe radius is 100 in three-globe, so altitude = (distance - 100) / 100
+      const altitude = (distance - 100) / 100;
+
+      // Get lat/lng from camera position (convert from cartesian)
+      const lat = 90 - (Math.acos(camera.position.y / distance) * 180 / Math.PI);
+      const lng = (Math.atan2(camera.position.x, camera.position.z) * 180 / Math.PI);
+
+      console.log('Controls camera - dist:', distance.toFixed(0), 'alt:', altitude.toFixed(2));
+
+      // Only update if altitude changed significantly (> 0.1)
+      if (Math.abs(altitude - lastAltitude) > 0.1) {
+        console.log('>>> Zoom level changed:', altitude.toFixed(2));
+        lastAltitude = altitude;
+        setViewportRef.current({
+          lat: lat,
+          lng: lng,
+          altitude: altitude
         });
       }
     };
 
-    // Check for controls and add listener
-    const controls = globe.controls();
-    if (controls) {
-      controls.addEventListener('change', handleCameraChange);
-      // Initial viewport
-      handleCameraChange();
+    // Listen to control changes
+    controls.addEventListener('change', updateFromControls);
 
-      return () => {
-        controls.removeEventListener('change', handleCameraChange);
-      };
-    }
-  }, [currentView, weatherData.setViewport]);
+    // Also listen to 'end' for when user stops dragging
+    controls.addEventListener('end', updateFromControls);
+
+    // Initial check
+    setTimeout(updateFromControls, 500);
+
+    return () => {
+      controls.removeEventListener('change', updateFromControls);
+      controls.removeEventListener('end', updateFromControls);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentView]);
 
   // Fetch data based on current view
   useEffect(() => {
