@@ -34,6 +34,37 @@ const GlobeComponent = () => {
 
   const [isDayMode, setIsDayMode] = useState(getDefaultTheme());
 
+  // Track camera/zoom changes for progressive loading
+  useEffect(() => {
+    if (!globeEl.current || currentView !== 'weather') return;
+
+    const globe = globeEl.current;
+
+    // Set up camera change listener
+    const handleCameraChange = () => {
+      const pov = globe.pointOfView();
+      if (pov) {
+        weatherData.setViewport({
+          lat: pov.lat || 0,
+          lng: pov.lng || 0,
+          altitude: pov.altitude || 3
+        });
+      }
+    };
+
+    // Check for controls and add listener
+    const controls = globe.controls();
+    if (controls) {
+      controls.addEventListener('change', handleCameraChange);
+      // Initial viewport
+      handleCameraChange();
+
+      return () => {
+        controls.removeEventListener('change', handleCameraChange);
+      };
+    }
+  }, [currentView, weatherData.setViewport]);
+
   // Fetch data based on current view
   useEffect(() => {
     const fetchViewData = async () => {
@@ -534,12 +565,12 @@ const GlobeComponent = () => {
           {currentView === 'explorer' && hoverCity
             ? `Hovering: ${hoverCity.name}`
             : currentView === 'weather'
-            ? `${weatherData.loading ? 'Loading...' : `Showing ${weatherData.heatmapData.length} locations`}`
+            ? `${weatherData.loading ? 'Loading...' : `${weatherData.heatmapData.length} points @ ${weatherData.currentResolution}° grid`}`
             : VIEWS.find(v => v.id === currentView)?.description}
         </p>
         <p style={{ margin: '5px 0', fontSize: '12px', opacity: 0.7 }}>
           {currentView === 'weather'
-            ? 'Click locations • Drag slider to change time'
+            ? `Zoom: ${weatherData.currentZoom} • Scroll to load more detail`
             : 'Drag to rotate • Scroll to zoom'}
         </p>
       </div>

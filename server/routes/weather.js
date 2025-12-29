@@ -75,23 +75,63 @@ router.get('/years', async (req, res) => {
   }
 });
 
+// Generate grid within viewport bounds
+const generateViewportGrid = (resolution, minLat, maxLat, minLng, maxLng) => {
+  const points = [];
+  // Snap to grid alignment
+  const startLat = Math.floor(minLat / resolution) * resolution;
+  const startLng = Math.floor(minLng / resolution) * resolution;
+
+  for (let lat = startLat; lat <= maxLat; lat += resolution) {
+    for (let lng = startLng; lng <= maxLng; lng += resolution) {
+      // Normalize longitude to -180 to 180
+      let normLng = lng;
+      if (normLng > 180) normLng -= 360;
+      if (normLng < -180) normLng += 360;
+
+      if (isLandPoint(lat, normLng)) {
+        points.push({ lat, lng: normLng });
+      }
+    }
+  }
+  return points;
+};
+
 // GET global grid data for a specific year and month (fetches from Open-Meteo)
+// Supports query params: resolution (default 10), minLat, maxLat, minLng, maxLng
 router.get('/grid/:year/:month', async (req, res) => {
   try {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
+    const resolution = parseFloat(req.query.resolution) || 10;
+
+    // Viewport bounds (optional)
+    const minLat = req.query.minLat ? parseFloat(req.query.minLat) : -60;
+    const maxLat = req.query.maxLat ? parseFloat(req.query.maxLat) : 70;
+    const minLng = req.query.minLng ? parseFloat(req.query.minLng) : -180;
+    const maxLng = req.query.maxLng ? parseFloat(req.query.maxLng) : 180;
 
     // Validate year range (Open-Meteo historical data availability)
     if (year < 1940 || year > new Date().getFullYear()) {
       return res.status(400).json({ message: 'Year out of range (1940-present)' });
     }
 
-    // Generate all grid points
-    const allGridPoints = generateGlobalGrid(10);
-    console.log(`Grid has ${allGridPoints.length} land points`);
+    // Validate resolution
+    const validResolutions = [10, 5, 2.5, 2, 1];
+    const actualResolution = validResolutions.includes(resolution) ? resolution : 10;
 
-    // Check cache for existing data
-    const cachedData = await WeatherCache.find({ year, month });
+    // Generate grid points (either global or viewport)
+    const isViewportQuery = req.query.minLat !== undefined;
+    const allGridPoints = isViewportQuery
+      ? generateViewportGrid(actualResolution, minLat, maxLat, minLng, maxLng)
+      : generateGlobalGrid(actualResolution);
+
+    console.log(`Grid: resolution=${actualResolution}°, points=${allGridPoints.length}, viewport=${isViewportQuery}`);
+
+    // Check cache for existing data at this resolution
+    const cacheQuery = { year, month };
+    // For finer resolutions, we need to check if we have data at those exact coordinates
+    const cachedData = await WeatherCache.find(cacheQuery);
     const cachedMap = new Map();
     cachedData.forEach(d => {
       cachedMap.set(`${d.lat},${d.lng}`, d);
@@ -100,7 +140,7 @@ router.get('/grid/:year/:month', async (req, res) => {
     // Find points that need fetching
     const missingPoints = allGridPoints.filter(p => !cachedMap.has(`${p.lat},${p.lng}`));
 
-    console.log(`Found ${cachedData.length} cached, ${missingPoints.length} missing`);
+    console.log(`Found ${cachedData.length} cached total, ${allGridPoints.length - missingPoints.length} matching, ${missingPoints.length} missing`);
 
     // Fetch missing points from Open-Meteo
     if (missingPoints.length > 0) {
