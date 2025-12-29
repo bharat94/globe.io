@@ -23,106 +23,72 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
   onYearChange,
   onMonthChange,
   onPlayPause,
-  onSpeedChange,
   playbackSpeed
 }) => {
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
-    bottom: '80px',
+    bottom: '25px',
     left: '50%',
     transform: 'translateX(-50%)',
-    background: 'rgba(0, 0, 0, 0.8)',
-    backdropFilter: 'blur(10px)',
-    padding: '15px 25px',
-    borderRadius: '15px',
+    background: 'rgba(0, 0, 0, 0.6)',
+    backdropFilter: 'blur(8px)',
+    padding: '8px 16px',
+    borderRadius: '20px',
     display: 'flex',
-    flexDirection: 'column',
+    alignItems: 'center',
     gap: '12px',
     zIndex: 1000,
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    minWidth: '400px'
-  };
-
-  const topRowStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '15px'
-  };
-
-  const dateDisplayStyle: React.CSSProperties = {
-    fontSize: '18px',
-    fontWeight: 'bold',
-    color: 'white',
-    minWidth: '140px',
-    textAlign: 'center'
-  };
-
-  const controlsStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
+    border: '1px solid rgba(255, 255, 255, 0.08)'
   };
 
   const buttonStyle: React.CSSProperties = {
-    background: 'rgba(255, 255, 255, 0.1)',
+    background: 'transparent',
     border: 'none',
-    borderRadius: '8px',
-    color: 'white',
-    padding: '8px 12px',
+    color: 'rgba(255, 255, 255, 0.7)',
+    padding: '4px 6px',
     cursor: 'pointer',
-    fontSize: '14px',
-    transition: 'background 0.2s'
+    fontSize: '12px',
+    transition: 'color 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   };
 
   const playButtonStyle: React.CSSProperties = {
-    ...buttonStyle,
-    background: isPlaying ? '#f46d43' : '#4CAF50',
-    padding: '8px 16px',
-    fontWeight: 'bold'
-  };
-
-  const sliderContainerStyle: React.CSSProperties = {
+    background: isPlaying ? 'rgba(244, 109, 67, 0.8)' : 'rgba(76, 175, 80, 0.8)',
+    border: 'none',
+    borderRadius: '50%',
+    color: 'white',
+    width: '28px',
+    height: '28px',
+    cursor: 'pointer',
+    fontSize: '11px',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px'
+    justifyContent: 'center',
+    transition: 'background 0.2s'
+  };
+
+  const dateStyle: React.CSSProperties = {
+    color: 'white',
+    fontSize: '13px',
+    fontWeight: '500',
+    minWidth: '90px',
+    textAlign: 'center'
   };
 
   const sliderStyle: React.CSSProperties = {
-    flex: 1,
-    height: '6px',
-    borderRadius: '3px',
-    background: 'rgba(255, 255, 255, 0.2)',
+    width: '120px',
+    height: '3px',
+    borderRadius: '2px',
+    background: 'rgba(255, 255, 255, 0.15)',
     appearance: 'none',
     cursor: 'pointer'
   };
 
-  const labelStyle: React.CSSProperties = {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: '12px',
-    minWidth: '40px'
-  };
-
-  const bottomRowStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '15px'
-  };
-
-  const monthSelectStyle: React.CSSProperties = {
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    borderRadius: '6px',
-    color: 'white',
-    padding: '6px 10px',
-    fontSize: '13px',
-    cursor: 'pointer'
-  };
-
-  const speedSelectStyle: React.CSSProperties = {
-    ...monthSelectStyle,
-    fontSize: '12px'
+  const yearLabelStyle: React.CSSProperties = {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: '10px'
   };
 
   const handleStepBack = () => {
@@ -143,137 +109,74 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
     }
   };
 
-  const handleYearJumpBack = () => {
-    if (currentYear > minYear) {
-      onYearChange(currentYear - 1);
-    }
-  };
-
-  const handleYearJumpForward = () => {
-    if (currentYear < maxYear) {
-      onYearChange(currentYear + 1);
-    }
-  };
-
   return (
     <div style={containerStyle}>
-      {/* Top row: Controls and date display */}
-      <div style={topRowStyle}>
-        <div style={controlsStyle}>
-          <button
-            style={buttonStyle}
-            onClick={handleYearJumpBack}
-            title="Previous Year"
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-          >
-            ⏮
-          </button>
-          <button
-            style={buttonStyle}
-            onClick={handleStepBack}
-            title="Previous Month"
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-          >
-            ◀
-          </button>
-          <button
-            style={playButtonStyle}
-            onClick={onPlayPause}
-            title={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isPlaying ? '⏸' : '▶'}
-          </button>
-          <button
-            style={buttonStyle}
-            onClick={handleStepForward}
-            title="Next Month"
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-          >
-            ▶
-          </button>
-          <button
-            style={buttonStyle}
-            onClick={handleYearJumpForward}
-            title="Next Year"
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-          >
-            ⏭
-          </button>
-        </div>
+      {/* Step back */}
+      <button
+        style={buttonStyle}
+        onClick={handleStepBack}
+        title="Previous"
+        onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
+        onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)'}
+      >
+        ◀
+      </button>
 
-        <div style={dateDisplayStyle}>
-          {getMonthName(currentMonth)} {currentYear}
-        </div>
+      {/* Play/Pause */}
+      <button
+        style={playButtonStyle}
+        onClick={onPlayPause}
+        title={isPlaying ? 'Pause' : 'Play'}
+      >
+        {isPlaying ? '⏸' : '▶'}
+      </button>
 
-        <div style={controlsStyle}>
-          <select
-            style={monthSelectStyle}
-            value={currentMonth}
-            onChange={(e) => onMonthChange(parseInt(e.target.value))}
-          >
-            {Array.from({ length: 12 }, (_, i) => (
-              <option key={i + 1} value={i + 1}>
-                {getMonthName(i + 1, true)}
-              </option>
-            ))}
-          </select>
+      {/* Step forward */}
+      <button
+        style={buttonStyle}
+        onClick={handleStepForward}
+        title="Next"
+        onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
+        onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)'}
+      >
+        ▶
+      </button>
 
-          <select
-            style={speedSelectStyle}
-            value={playbackSpeed}
-            onChange={(e) => onSpeedChange(parseInt(e.target.value))}
-            title="Playback Speed"
-          >
-            <option value={3000}>0.5x</option>
-            <option value={1500}>1x</option>
-            <option value={750}>2x</option>
-            <option value={375}>4x</option>
-          </select>
-        </div>
+      {/* Date display */}
+      <div style={dateStyle}>
+        {getMonthName(currentMonth, true)} {currentYear}
       </div>
 
-      {/* Bottom row: Year slider */}
-      <div style={bottomRowStyle}>
-        <span style={labelStyle}>{minYear}</span>
-        <input
-          type="range"
-          min={minYear}
-          max={maxYear}
-          value={currentYear}
-          onChange={(e) => onYearChange(parseInt(e.target.value))}
-          style={sliderStyle}
-        />
-        <span style={labelStyle}>{maxYear}</span>
-      </div>
+      {/* Year slider */}
+      <span style={yearLabelStyle}>{minYear}</span>
+      <input
+        type="range"
+        min={minYear}
+        max={maxYear}
+        value={currentYear}
+        onChange={(e) => onYearChange(parseInt(e.target.value))}
+        style={sliderStyle}
+        title={`Year: ${currentYear}`}
+      />
+      <span style={yearLabelStyle}>{maxYear}</span>
 
       <style>{`
         input[type="range"]::-webkit-slider-thumb {
           appearance: none;
-          width: 16px;
-          height: 16px;
+          width: 12px;
+          height: 12px;
           border-radius: 50%;
-          background: #4CAF50;
+          background: white;
           cursor: pointer;
-          box-shadow: 0 0 4px rgba(0,0,0,0.3);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
         input[type="range"]::-moz-range-thumb {
-          width: 16px;
-          height: 16px;
+          width: 12px;
+          height: 12px;
           border-radius: 50%;
-          background: #4CAF50;
+          background: white;
           cursor: pointer;
           border: none;
-        }
-        select {
-          outline: none;
-        }
-        select option {
-          background: #1a1a1a;
-          color: white;
         }
       `}</style>
     </div>
