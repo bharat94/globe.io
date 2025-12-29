@@ -64,7 +64,7 @@ export const useWeatherData = (): UseWeatherDataReturn => {
       setError(null);
 
       try {
-        const response = await fetch(`${API_BASE}/heatmap/${selectedYear}/${selectedMonth}`);
+        const response = await fetch(`${API_BASE}/grid/${selectedYear}/${selectedMonth}`);
         if (!response.ok) {
           throw new Error('Failed to fetch weather data');
         }
