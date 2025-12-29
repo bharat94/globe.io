@@ -27,7 +27,7 @@ export const useWeatherData = (): UseWeatherDataReturn => {
   const [selectedYear, setSelectedYear] = useState(2024);
   const [selectedMonth, setSelectedMonth] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1500); // ms between frames
+  const [playbackSpeed, setPlaybackSpeed] = useState(2000); // ms between frames
 
   // Cache for fetched data
   const cache = useRef<Map<string, HeatmapPoint[]>>(new Map());

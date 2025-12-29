@@ -310,7 +310,7 @@ const GlobeComponent = () => {
         heatmapColorSaturation={2.5}
         heatmapBaseAltitude={0.01}
         heatmapTopAltitude={0.12}
-        heatmapsTransitionDuration={800}
+        heatmapsTransitionDuration={1200}
         // Weather point markers for clicking
         hexBinPointsData={currentView === 'weather' ? weatherData.heatmapData : []}
         hexBinPointLat="lat"
