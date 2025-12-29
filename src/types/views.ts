@@ -21,7 +21,7 @@ export const VIEWS: ViewConfig[] = [
     name: 'Weather',
     icon: '🌤️',
     description: 'View global weather patterns',
-    enabled: false // Will be enabled when implemented
+    enabled: true
   },
   {
     id: 'flights',

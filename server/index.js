@@ -4,6 +4,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const citiesRouter = require('./routes/cities');
+const weatherRouter = require('./routes/weather');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +33,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/cities', citiesRouter);
+app.use('/api/weather', weatherRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
