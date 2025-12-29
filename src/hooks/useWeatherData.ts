@@ -3,20 +3,24 @@ import type { HeatmapPoint, YearRange, WeatherDataPoint } from '../types/weather
 
 const API_BASE = 'http://localhost:3001/api/weather';
 
-// Zoom level to grid resolution mapping
-export type ZoomLevel = 'far' | 'medium' | 'close';
+// Zoom level to grid resolution mapping (more granular)
+export type ZoomLevel = 'global' | 'continental' | 'regional' | 'local' | 'detail';
 
 export const getZoomLevel = (altitude: number): ZoomLevel => {
-  if (altitude > 2.5) return 'far';
-  if (altitude > 1.2) return 'medium';
-  return 'close';
+  if (altitude > 3.0) return 'global';
+  if (altitude > 2.0) return 'continental';
+  if (altitude > 1.2) return 'regional';
+  if (altitude > 0.6) return 'local';
+  return 'detail';
 };
 
 export const getResolutionForZoom = (zoom: ZoomLevel): number => {
   switch (zoom) {
-    case 'far': return 10;      // ~300 points global
-    case 'medium': return 5;    // ~1,200 points global
-    case 'close': return 2.5;   // ~4,800 points global
+    case 'global': return 10;       // ~300 points
+    case 'continental': return 5;   // ~950 points
+    case 'regional': return 2.5;    // ~3,800 points
+    case 'local': return 1;         // ~15,000 points (viewport only)
+    case 'detail': return 0.5;      // ~60,000 points (viewport only)
   }
 };
 
@@ -101,8 +105,8 @@ export const useWeatherData = (): UseWeatherDataReturn => {
       setCurrentZoom(zoom);
       setCurrentResolution(resolution);
 
-      // For far zoom, fetch global. For closer, fetch viewport
-      const bounds = zoom === 'far' ? null : getViewportBounds(viewport);
+      // For global/continental zoom, fetch global. For closer, fetch viewport
+      const bounds = (zoom === 'global' || zoom === 'continental') ? null : getViewportBounds(viewport);
 
       const cacheKey = bounds
         ? `${selectedYear}-${selectedMonth}-${resolution}-${Math.round(bounds.minLat)}-${Math.round(bounds.maxLat)}-${Math.round(bounds.minLng)}-${Math.round(bounds.maxLng)}`
@@ -134,22 +138,25 @@ export const useWeatherData = (): UseWeatherDataReturn => {
         cache.current.set(cacheKey, data);
 
         // Merge with existing data for smooth transitions
-        if (bounds && zoom !== 'far') {
-          // Keep global data and add detailed data
+        if (bounds && (zoom === 'regional' || zoom === 'local' || zoom === 'detail')) {
+          // Keep global data and add/replace with detailed data
           const globalKey = `${selectedYear}-${selectedMonth}-10-global`;
           const globalData = cache.current.get(globalKey) || [];
-          const mergedData = [...globalData];
 
-          // Add new detailed points that aren't duplicates
-          data.forEach((newPoint: HeatmapPoint) => {
-            const exists = mergedData.some(
-              p => Math.abs(p.lat - newPoint.lat) < 1 && Math.abs(p.lng - newPoint.lng) < 1
-            );
-            if (!exists) {
-              mergedData.push(newPoint);
-            }
+          // Create a map for efficient lookup, prefer higher resolution data
+          const dataMap = new Map<string, HeatmapPoint>();
+
+          // Add global data first
+          globalData.forEach((p: HeatmapPoint) => {
+            dataMap.set(`${p.lat.toFixed(1)},${p.lng.toFixed(1)}`, p);
           });
-          setHeatmapData(mergedData);
+
+          // Add/replace with new detailed points
+          data.forEach((newPoint: HeatmapPoint) => {
+            dataMap.set(`${newPoint.lat.toFixed(2)},${newPoint.lng.toFixed(2)}`, newPoint);
+          });
+
+          setHeatmapData(Array.from(dataMap.values()));
         } else {
           setHeatmapData(data);
         }
@@ -171,10 +178,10 @@ export const useWeatherData = (): UseWeatherDataReturn => {
       clearTimeout(fetchTimeoutRef.current);
     }
 
-    // Debounce viewport changes to avoid too many API calls
+    // Debounce viewport changes to avoid too many API calls (150ms for responsiveness)
     fetchTimeoutRef.current = setTimeout(() => {
       setViewportState(newViewport);
-    }, 300);
+    }, 150);
   }, []);
 
   // Playback animation logic
