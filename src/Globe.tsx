@@ -43,32 +43,19 @@ const GlobeComponent = () => {
       setSelectedWeatherLocation(null); // Clear weather selection
 
       try {
-        // View-specific data fetching
-        switch (currentView) {
-          case 'explorer':
-            const response = await fetch('http://localhost:3001/api/cities');
-            if (!response.ok) {
-              throw new Error('Failed to fetch cities');
-            }
-            const data = await response.json();
-            setCities(data);
-            break;
+        // Always fetch cities for markers
+        const response = await fetch('http://localhost:3001/api/cities');
+        if (!response.ok) {
+          throw new Error('Failed to fetch cities');
+        }
+        const data = await response.json();
+        setCities(data);
 
-          case 'weather':
-            // Weather data is handled by useWeatherData hook
-            setCities([]);
-            setLoading(false); // Weather hook handles its own loading
-            return; // Exit early, don't set loading to false below
-
-          case 'flights':
-            // TODO: Implement flights data fetching
-            setCities([]);
-            break;
-
-          case 'pollution':
-            // TODO: Implement pollution data fetching
-            setCities([]);
-            break;
+        // View-specific handling
+        if (currentView === 'weather') {
+          // Weather data is handled by useWeatherData hook
+          setLoading(false);
+          return;
         }
 
         setLoading(false);
@@ -271,11 +258,11 @@ const GlobeComponent = () => {
           ? "//unpkg.com/three-globe/example/img/night-sky.png"
           : "//unpkg.com/three-globe/example/img/night-sky.png"
         }
-        // Only show points in explorer view
-        pointsData={currentView === 'explorer' ? cities : []}
+        // Show city markers in explorer and weather views
+        pointsData={currentView === 'explorer' || currentView === 'weather' ? cities : []}
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={0.02}
+        pointAltitude={currentView === 'weather' ? 0.05 : 0.02}
         pointColor={(d: any) => d.color || '#ffffff'}
         pointRadius={0.8}
         pointLabel={(d: any) => `
@@ -306,24 +293,26 @@ const GlobeComponent = () => {
         heatmapPointLat="lat"
         heatmapPointLng="lng"
         heatmapPointWeight="weight"
-        heatmapBandwidth={3}
-        heatmapColorSaturation={2.5}
-        heatmapBaseAltitude={0.01}
-        heatmapTopAltitude={0.12}
+        heatmapBandwidth={7}
+        heatmapColorSaturation={0.8}
+        heatmapBaseAltitude={0.005}
+        heatmapTopAltitude={0.02}
         heatmapsTransitionDuration={1200}
-        // Weather point markers for clicking
-        hexBinPointsData={currentView === 'weather' ? weatherData.heatmapData : []}
-        hexBinPointLat="lat"
-        hexBinPointLng="lng"
-        hexBinPointWeight={() => 1}
-        hexAltitude={0.01}
-        hexBinResolution={3}
-        hexTopColor={(d: any) => getTemperatureColor(d.points[0]?.temperature?.avg || 20)}
-        hexSideColor={(d: any) => getTemperatureColor(d.points[0]?.temperature?.avg || 20)}
-        hexBinMerge={true}
-        onHexClick={(hex: any) => {
-          if (currentView === 'weather' && hex.points && hex.points.length > 0) {
-            handleWeatherPointClick(hex.points[0]);
+        onGlobeClick={(coords: { lat: number; lng: number }) => {
+          if (currentView === 'weather') {
+            // Find nearest heatmap point
+            const nearest = weatherData.heatmapData.reduce((closest: any, point: any) => {
+              const dist = Math.sqrt(
+                Math.pow(point.lat - coords.lat, 2) + Math.pow(point.lng - coords.lng, 2)
+              );
+              if (!closest || dist < closest.dist) {
+                return { point, dist };
+              }
+              return closest;
+            }, null);
+            if (nearest && nearest.dist < 15) {
+              handleWeatherPointClick(nearest.point);
+            }
           }
         }}
       />
