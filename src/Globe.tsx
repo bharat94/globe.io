@@ -36,64 +36,32 @@ const GlobeComponent = () => {
 
   const [isDayMode, setIsDayMode] = useState(getDefaultTheme());
 
-  // Track camera/zoom changes for progressive loading
+  // Handle zoom/rotation changes for progressive loading
+  const handleZoom = useCallback((pov: { lat: number; lng: number; altitude: number }) => {
+    if (currentView !== 'weather') return;
+
+    console.log('onZoom fired - lat:', pov.lat.toFixed(2), 'lng:', pov.lng.toFixed(2), 'alt:', pov.altitude.toFixed(2));
+
+    setViewportRef.current({
+      lat: pov.lat,
+      lng: pov.lng,
+      altitude: pov.altitude
+    });
+  }, [currentView]);
+
+  // Set initial viewport when entering weather view
   useEffect(() => {
-    if (!globeEl.current || currentView !== 'weather') return;
-
-    const globe = globeEl.current;
-    let lastAltitude = -1;
-
-    // Get controls - this gives us direct access to OrbitControls
-    const controls = globe.controls();
-
-    if (!controls) {
-      console.warn('No controls available');
-      return;
-    }
-
-    const updateFromControls = () => {
-      // OrbitControls stores the actual camera on .object
-      const camera = controls.object;
-      if (!camera) return;
-
-      // Calculate distance from camera to origin (center of globe)
-      const distance = camera.position.length();
-
-      // Globe radius is 100 in three-globe, so altitude = (distance - 100) / 100
-      const altitude = (distance - 100) / 100;
-
-      // Get lat/lng from camera position (convert from cartesian)
-      const lat = 90 - (Math.acos(camera.position.y / distance) * 180 / Math.PI);
-      const lng = (Math.atan2(camera.position.x, camera.position.z) * 180 / Math.PI);
-
-      console.log('Controls camera - dist:', distance.toFixed(0), 'alt:', altitude.toFixed(2));
-
-      // Only update if altitude changed significantly (> 0.1)
-      if (Math.abs(altitude - lastAltitude) > 0.1) {
-        console.log('>>> Zoom level changed:', altitude.toFixed(2));
-        lastAltitude = altitude;
+    if (currentView === 'weather' && globeEl.current) {
+      const pov = globeEl.current.pointOfView();
+      if (pov) {
+        console.log('Initial POV:', pov);
         setViewportRef.current({
-          lat: lat,
-          lng: lng,
-          altitude: altitude
+          lat: pov.lat || 0,
+          lng: pov.lng || 0,
+          altitude: pov.altitude || 2.5
         });
       }
-    };
-
-    // Listen to control changes
-    controls.addEventListener('change', updateFromControls);
-
-    // Also listen to 'end' for when user stops dragging
-    controls.addEventListener('end', updateFromControls);
-
-    // Initial check
-    setTimeout(updateFromControls, 500);
-
-    return () => {
-      controls.removeEventListener('change', updateFromControls);
-      controls.removeEventListener('end', updateFromControls);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }
   }, [currentView]);
 
   // Fetch data based on current view
@@ -360,6 +328,7 @@ const GlobeComponent = () => {
         heatmapBaseAltitude={0.005}
         heatmapTopAltitude={0.02}
         heatmapsTransitionDuration={1200}
+        onZoom={handleZoom}
         onGlobeClick={(coords: { lat: number; lng: number }) => {
           if (currentView === 'weather') {
             // Find nearest heatmap point
