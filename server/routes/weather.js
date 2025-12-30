@@ -2,7 +2,12 @@ const express = require('express');
 const router = express.Router();
 const WeatherData = require('../models/WeatherData');
 const WeatherCache = require('../models/WeatherCache');
+const TemperatureData = require('../models/TemperatureData');
 const { fetchGridTemperature } = require('../services/openMeteo');
+const { generateGlobalGrid: generateGrid, normalizeTemperature: normalizeTemp } = require('../utils/gridUtils');
+
+// Pre-computed resolutions stored in TemperatureData
+const PRECOMPUTED_RESOLUTIONS = [10, 5, 2.5];
 
 // Continental bounding boxes for land detection (same as frontend)
 const CONTINENTAL_BOUNDS = [
@@ -97,8 +102,9 @@ const generateViewportGrid = (resolution, minLat, maxLat, minLng, maxLng) => {
   return points;
 };
 
-// GET global grid data for a specific year and month (fetches from Open-Meteo)
+// GET global grid data for a specific year and month
 // Supports query params: resolution (default 10), minLat, maxLat, minLng, maxLng
+// First checks pre-computed TemperatureData, falls back to WeatherCache/API for finer resolutions
 router.get('/grid/:year/:month', async (req, res) => {
   try {
     const year = parseInt(req.params.year);
@@ -128,9 +134,46 @@ router.get('/grid/:year/:month', async (req, res) => {
 
     console.log(`Grid: resolution=${actualResolution}°, points=${allGridPoints.length}, viewport=${isViewportQuery}`);
 
-    // Check cache for existing data at this resolution
+    // ========================================
+    // STRATEGY 1: Check pre-computed TemperatureData first (for 10°, 5°, 2.5°)
+    // ========================================
+    if (PRECOMPUTED_RESOLUTIONS.includes(actualResolution)) {
+      const precomputedData = await TemperatureData.find({
+        resolution: actualResolution,
+        year,
+        month
+      }).lean();
+
+      if (precomputedData.length > 0) {
+        console.log(`Found ${precomputedData.length} pre-computed records in TemperatureData`);
+
+        // Filter to viewport if needed
+        let filteredData = precomputedData;
+        if (isViewportQuery) {
+          filteredData = precomputedData.filter(d =>
+            d.lat >= minLat && d.lat <= maxLat &&
+            d.lng >= minLng && d.lng <= maxLng
+          );
+        }
+
+        const heatmapData = filteredData.map(d => ({
+          lat: d.lat,
+          lng: d.lng,
+          weight: normalizeTemperature(d.temperature.avg),
+          temperature: d.temperature
+        }));
+
+        console.log(`Returning ${heatmapData.length} pre-computed heatmap points`);
+        return res.json(heatmapData);
+      }
+
+      console.log(`No pre-computed data for resolution=${actualResolution}°, falling back to cache/API`);
+    }
+
+    // ========================================
+    // STRATEGY 2: Fall back to WeatherCache + Open-Meteo API (for finer resolutions)
+    // ========================================
     const cacheQuery = { year, month };
-    // For finer resolutions, we need to check if we have data at those exact coordinates
     const cachedData = await WeatherCache.find(cacheQuery);
     const cachedMap = new Map();
     cachedData.forEach(d => {
@@ -140,7 +183,7 @@ router.get('/grid/:year/:month', async (req, res) => {
     // Find points that need fetching
     const missingPoints = allGridPoints.filter(p => !cachedMap.has(`${p.lat},${p.lng}`));
 
-    console.log(`Found ${cachedData.length} cached total, ${allGridPoints.length - missingPoints.length} matching, ${missingPoints.length} missing`);
+    console.log(`Cache: ${cachedData.length} total, ${allGridPoints.length - missingPoints.length} matching, ${missingPoints.length} missing`);
 
     // Fetch missing points from Open-Meteo
     if (missingPoints.length > 0) {
@@ -197,7 +240,7 @@ router.get('/grid/:year/:month', async (req, res) => {
       }
     });
 
-    console.log(`Returning ${heatmapData.length} heatmap points`);
+    console.log(`Returning ${heatmapData.length} heatmap points (from cache/API)`);
     res.json(heatmapData);
   } catch (error) {
     console.error('Grid endpoint error:', error);

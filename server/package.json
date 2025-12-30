@@ -6,12 +6,19 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "seed": "node data/seed.js"
+    "seed": "node data/seed.js",
+    "ingest": "node ingestion/index.js ingest",
+    "ingest:temperature:10": "node ingestion/index.js ingest --type temperature --resolution 10",
+    "ingest:temperature:5": "node ingestion/index.js ingest --type temperature --resolution 5",
+    "ingest:temperature:2.5": "node ingestion/index.js ingest --type temperature --resolution 2.5",
+    "ingest:jobs": "node ingestion/index.js jobs list",
+    "ingest:stats": "node ingestion/index.js stats"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "commander": "^12.1.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
