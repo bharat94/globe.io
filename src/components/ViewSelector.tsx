@@ -19,24 +19,29 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
       top: '50%',
       transform: 'translateY(-50%)',
       zIndex: 1000,
-      background: 'rgba(0, 0, 0, 0.7)',
-      padding: '15px',
-      borderRadius: '30px',
-      backdropFilter: 'blur(10px)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
     }}>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          height: `${scrollableHeight}px`,
-          overflowY: 'scroll',
-          scrollbarWidth: 'none', // Firefox
-          msOverflowStyle: 'none', // IE/Edge
-        }}
-        className="view-list"
-      >
+      {/* Background container - clips vertically but allows horizontal overflow for labels */}
+      <div style={{
+        background: 'rgba(0, 0, 0, 0.7)',
+        padding: '15px',
+        borderRadius: '30px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+      }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            height: `${scrollableHeight}px`,
+            overflowY: 'scroll',
+            scrollbarWidth: 'none', // Firefox
+            msOverflowStyle: 'none', // IE/Edge
+            paddingRight: '100px', // Space for hover labels
+            marginRight: '-100px', // Pull container back
+          }}
+          className="view-list"
+        >
       {views.map((view) => (
         <div
           key={view.id}
@@ -107,6 +112,7 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
           </div>
         </div>
       ))}
+        </div>
       </div>
 
       <style>{`
