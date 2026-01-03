@@ -2,6 +2,8 @@
 
 An interactive 3D globe visualization to explore cities, weather patterns, and population data around the world.
 
+![Globe.io Screenshot](screenshot.png)
+
 ## Features
 
 - **Explorer View** - Discover 50 major cities with rich details (population, climate, languages, industries)
