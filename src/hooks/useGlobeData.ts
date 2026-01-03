@@ -17,8 +17,9 @@ import { WeatherDataSource } from '../datasources/sources/weather/WeatherDataSou
 // Data source registry
 const dataSources = {
   weather: () => new WeatherDataSource(),
+  // Future: earthquakes: () => new EarthquakesDataSource(),
+  // Future: satellites: () => new SatellitesDataSource(),
   // Future: pollution: () => new PollutionDataSource(),
-  // Future: flights: () => new FlightsDataSource(),
 };
 
 // Zoom level utilities

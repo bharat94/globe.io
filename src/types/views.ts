@@ -1,4 +1,4 @@
-export type ViewType = 'explorer' | 'weather' | 'population' | 'flights' | 'pollution';
+export type ViewType = 'explorer' | 'weather' | 'population' | 'earthquakes' | 'satellites' | 'pollution';
 
 export interface ViewConfig {
   id: ViewType;
@@ -31,17 +31,24 @@ export const VIEWS: ViewConfig[] = [
     enabled: true
   },
   {
-    id: 'flights',
-    name: 'Flights',
-    icon: '✈️',
-    description: 'Track flights around the world',
-    enabled: false // Will be enabled when implemented
+    id: 'earthquakes',
+    name: 'Earthquakes',
+    icon: '🌋',
+    description: 'Visualize seismic activity worldwide',
+    enabled: false // Coming soon - USGS earthquake data
+  },
+  {
+    id: 'satellites',
+    name: 'Satellites',
+    icon: '🛰️',
+    description: 'Track satellites orbiting Earth',
+    enabled: false // Coming soon - orbital visualization
   },
   {
     id: 'pollution',
     name: 'Pollution',
     icon: '🏭',
     description: 'Monitor air quality globally',
-    enabled: false // Will be enabled when implemented
+    enabled: false // Coming soon - air quality index
   }
 ];
