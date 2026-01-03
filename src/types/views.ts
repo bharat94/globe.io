@@ -1,4 +1,4 @@
-export type ViewType = 'explorer' | 'weather' | 'flights' | 'pollution';
+export type ViewType = 'explorer' | 'weather' | 'population' | 'flights' | 'pollution';
 
 export interface ViewConfig {
   id: ViewType;
@@ -21,6 +21,13 @@ export const VIEWS: ViewConfig[] = [
     name: 'Weather',
     icon: '🌤️',
     description: 'View global weather patterns',
+    enabled: true
+  },
+  {
+    id: 'population',
+    name: 'Population',
+    icon: '👥',
+    description: 'Track population changes over time',
     enabled: true
   },
   {

@@ -7,6 +7,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "seed": "node data/seed.js",
+    "seed:population": "node data/seedPopulation.js",
     "ingest": "node ingestion/index.js ingest",
     "ingest:temperature:10": "node ingestion/index.js ingest --type temperature --resolution 10",
     "ingest:temperature:5": "node ingestion/index.js ingest --type temperature --resolution 5",
