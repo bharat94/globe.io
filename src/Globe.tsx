@@ -361,7 +361,7 @@ const GlobeComponent = () => {
         pointLng="lng"
         pointAltitude={
           currentView === 'population' ? 0.01
-          : currentView === 'earthquakes' ? 0.08
+          : currentView === 'earthquakes' ? 0.01
           : (currentView === 'weather' ? 0.05 : 0.02)
         }
         pointColor={(d: any) =>
@@ -371,7 +371,7 @@ const GlobeComponent = () => {
         }
         pointRadius={(d: any) =>
           currentView === 'population' ? 0.4 + (d.weight * 2.5)
-          : currentView === 'earthquakes' ? 0.3 + (d.weight * 3)
+          : currentView === 'earthquakes' ? 0.15 + (d.weight * 0.8)
           : 0.8
         }
         pointLabel={(d: any) =>
@@ -448,6 +448,28 @@ const GlobeComponent = () => {
         heatmapBaseAltitude={0.005}
         heatmapTopAltitude={0.02}
         heatmapsTransitionDuration={1200}
+        // Earthquake rings layer - seismic wave animation
+        ringsData={currentView === 'earthquakes' ? earthquakeData.earthquakes : []}
+        ringLat="lat"
+        ringLng="lng"
+        ringAltitude={0.005}
+        ringColor={(d: any) => {
+          // Create a gradient from the earthquake's color to transparent
+          const baseColor = d.color || '#ff4444';
+          return [`${baseColor}cc`, `${baseColor}00`];
+        }}
+        ringMaxRadius={(d: any) => {
+          // Bigger magnitude = bigger ripple radius (in degrees)
+          return 3 + (d.magnitude - 2.5) * 2;
+        }}
+        ringPropagationSpeed={(d: any) => {
+          // Stronger earthquakes propagate faster
+          return 2 + (d.magnitude - 2.5) * 0.8;
+        }}
+        ringRepeatPeriod={(d: any) => {
+          // Recent earthquakes pulse faster, all pulse visibly
+          return d.isRecent ? 600 : 1200;
+        }}
         onZoom={handleZoom}
         onGlobeClick={(coords: { lat: number; lng: number }) => {
           if (currentView === 'weather') {
