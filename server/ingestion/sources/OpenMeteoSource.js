@@ -59,7 +59,16 @@ class OpenMeteoSource {
         if (!response.ok) {
           const errorText = await response.text();
 
-          // Check if retryable
+          // Check for hourly rate limit - requires long pause
+          if (response.status === 429 && errorText.includes('Hourly')) {
+            const hourlyBackoff = 30 * 60 * 1000; // 30 minutes
+            console.warn(`⚠️  HOURLY rate limit hit! Pausing for 30 minutes...`);
+            console.warn(`   Will resume at: ${new Date(Date.now() + hourlyBackoff).toLocaleTimeString()}`);
+            await this.sleep(hourlyBackoff);
+            continue;
+          }
+
+          // Check if retryable (minutely limit or server errors)
           if (
             this.retryConfig.retryableStatusCodes.includes(response.status) &&
             attempt < this.retryConfig.maxRetries

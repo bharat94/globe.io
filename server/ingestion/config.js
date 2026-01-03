@@ -20,14 +20,14 @@ module.exports = {
   RATE_LIMIT: {
     maxRequestsPerDay: 10000,
     safeRequestsPerDay: 9000,  // Buffer for errors/retries
-    minDelayBetweenRequestsMs: 100,
-    batchSize: 50  // Coordinates per API request
+    minDelayBetweenRequestsMs: 1500,  // 1.5 seconds between batches to avoid rate limits
+    batchSize: 100  // Coordinates per API request (Open-Meteo max is 100)
   },
 
   // Retry configuration
   RETRY: {
-    maxRetries: 3,
-    backoffMs: [1000, 5000, 15000],
+    maxRetries: 5,
+    backoffMs: [5000, 15000, 30000, 60000, 120000],  // More aggressive backoff
     retryableStatusCodes: [429, 500, 502, 503, 504]
   },
 
