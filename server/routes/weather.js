@@ -2,7 +2,13 @@ const express = require('express');
 const router = express.Router();
 const WeatherData = require('../models/WeatherData');
 const DataService = require('../datasources/DataService');
+const apiQuota = require('../services/apiQuota');
 const { normalizeTemperature } = require('../utils/gridUtils');
+
+// GET API quota status
+router.get('/quota', (req, res) => {
+  res.json(apiQuota.getStatus());
+});
 
 // GET available years range
 router.get('/years', async (req, res) => {
