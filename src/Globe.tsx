@@ -4,13 +4,28 @@ import * as THREE from 'three';
 import type { City } from './citiesData';
 import type { ViewType } from './types/views';
 import type { WeatherDataPoint } from './types/weather';
+import type { PopulationDataPoint } from './types/population';
 import { VIEWS } from './types/views';
 import ViewSelector from './components/ViewSelector';
 import TimeSlider from './components/weather/TimeSlider';
 import WeatherPanel from './components/weather/WeatherPanel';
 import WeatherLegend from './components/weather/WeatherLegend';
+import PopulationTimeSlider from './components/population/PopulationTimeSlider';
+import PopulationPanel from './components/population/PopulationPanel';
+import PopulationLegend from './components/population/PopulationLegend';
 import { useWeatherData } from './hooks/useWeatherData';
+import { usePopulationData } from './hooks/usePopulationData';
 import { getTemperatureColor } from './utils/weatherUtils';
+
+// Convert country code to flag emoji
+function getCountryFlag(countryCode: string): string {
+  if (!countryCode) return '';
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map(char => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+}
 
 const GlobeComponent = () => {
   const globeEl = useRef<any>(null);
@@ -22,9 +37,13 @@ const GlobeComponent = () => {
   const [showLearnMore, setShowLearnMore] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('explorer');
   const [selectedWeatherLocation, setSelectedWeatherLocation] = useState<WeatherDataPoint | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<PopulationDataPoint | null>(null);
 
   // Weather data hook
   const weatherData = useWeatherData();
+
+  // Population data hook
+  const populationData = usePopulationData();
   const setViewportRef = useRef(weatherData.setViewport);
   setViewportRef.current = weatherData.setViewport;
 
@@ -71,6 +90,7 @@ const GlobeComponent = () => {
       setError(null);
       setSelectedCity(null); // Clear selected city when switching views
       setSelectedWeatherLocation(null); // Clear weather selection
+      setSelectedCountry(null); // Clear population selection
 
       try {
         // Always fetch cities for markers
@@ -84,6 +104,12 @@ const GlobeComponent = () => {
         // View-specific handling
         if (currentView === 'weather') {
           // Weather data is handled by useWeatherData hook
+          setLoading(false);
+          return;
+        }
+
+        if (currentView === 'population') {
+          // Population data is handled by usePopulationData hook
           setLoading(false);
           return;
         }
@@ -114,6 +140,17 @@ const GlobeComponent = () => {
   const handleViewChange = (view: ViewType) => {
     setCurrentView(view);
   };
+
+  // Handle click on population bubble
+  const handlePopulationClick = useCallback((point: PopulationDataPoint) => {
+    setSelectedCountry(point);
+    if (globeEl.current) {
+      globeEl.current.pointOfView(
+        { lat: point.lat, lng: point.lng, altitude: 2 },
+        1000
+      );
+    }
+  }, []);
 
   // Handle click on weather heatmap point
   const handleWeatherPointClick = useCallback(async (point: any) => {
@@ -288,14 +325,27 @@ const GlobeComponent = () => {
           ? "//unpkg.com/three-globe/example/img/night-sky.png"
           : "//unpkg.com/three-globe/example/img/night-sky.png"
         }
-        // Show city markers in explorer and weather views
-        pointsData={currentView === 'explorer' || currentView === 'weather' ? cities : []}
+        // Show city markers in explorer/weather views, population bubbles in population view
+        pointsData={
+          currentView === 'population'
+            ? populationData.populationData
+            : (currentView === 'explorer' || currentView === 'weather' ? cities : [])
+        }
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={currentView === 'weather' ? 0.05 : 0.02}
-        pointColor={(d: any) => d.color || '#ffffff'}
-        pointRadius={0.8}
-        pointLabel={(d: any) => `
+        pointAltitude={currentView === 'population' ? 0.01 : (currentView === 'weather' ? 0.05 : 0.02)}
+        pointColor={(d: any) => currentView === 'population' ? '#4FC3F7' : (d.color || '#ffffff')}
+        pointRadius={(d: any) => currentView === 'population' ? 0.4 + (d.weight * 2.5) : 0.8}
+        pointLabel={(d: any) => currentView === 'population' ? `
+          <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
+            <div style="font-size: 24px; margin-bottom: 8px;">${getCountryFlag(d.countryCode)}</div>
+            <b style="font-size: 16px; color: #4FC3F7;">${d.name}</b><br/>
+            <div style="margin-top: 8px; font-size: 14px;">
+              <b>Population:</b> ${d.populationFormatted}<br/>
+              <span style="opacity: 0.7; font-size: 12px;">${d.population?.toLocaleString() || 0} people</span>
+            </div>
+          </div>
+        ` : `
           <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
             <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
             <span style="font-size: 13px; opacity: 0.8;">${d.country}</span><br/>
@@ -305,11 +355,19 @@ const GlobeComponent = () => {
             </div>
           </div>
         `}
-        onPointClick={(point: any) => currentView === 'explorer' && handleCityClick(point as City)}
-        onPointHover={(point: any) => {
+        onPointClick={(point: any) => {
           if (currentView === 'explorer') {
-            setHoverCity(point as City | null);
-            // Change cursor to pointer when hovering over a city
+            handleCityClick(point as City);
+          } else if (currentView === 'population') {
+            handlePopulationClick(point as PopulationDataPoint);
+          }
+        }}
+        onPointHover={(point: any) => {
+          if (currentView === 'explorer' || currentView === 'population') {
+            if (currentView === 'explorer') {
+              setHoverCity(point as City | null);
+            }
+            // Change cursor to pointer when hovering over a point
             const canvas = document.querySelector('canvas');
             if (canvas) {
               canvas.style.cursor = point ? 'pointer' : 'grab';
@@ -547,6 +605,30 @@ const GlobeComponent = () => {
         </>
       )}
 
+      {/* Population View UI */}
+      {currentView === 'population' && (
+        <>
+          <PopulationTimeSlider
+            minYear={populationData.yearRange.minYear}
+            maxYear={populationData.yearRange.maxYear}
+            currentYear={populationData.selectedYear}
+            isPlaying={populationData.isPlaying}
+            onYearChange={populationData.setSelectedYear}
+            onPlayPause={populationData.togglePlayback}
+            playbackSpeed={populationData.playbackSpeed}
+            onSpeedChange={populationData.setPlaybackSpeed}
+          />
+          <PopulationLegend />
+          {selectedCountry && (
+            <PopulationPanel
+              country={selectedCountry}
+              currentYear={populationData.selectedYear}
+              onClose={() => setSelectedCountry(null)}
+            />
+          )}
+        </>
+      )}
+
       <div style={{
         position: 'absolute',
         bottom: '20px',
@@ -566,11 +648,15 @@ const GlobeComponent = () => {
             ? `Hovering: ${hoverCity.name}`
             : currentView === 'weather'
             ? `${weatherData.loading ? 'Loading...' : `${weatherData.heatmapData.length} points @ ${weatherData.currentResolution}° grid`}`
+            : currentView === 'population'
+            ? `${populationData.loading ? 'Loading...' : `${populationData.populationData.length} countries`}`
             : VIEWS.find(v => v.id === currentView)?.description}
         </p>
         <p style={{ margin: '5px 0', fontSize: '12px', opacity: 0.7 }}>
           {currentView === 'weather'
             ? `Zoom: ${weatherData.currentZoom} • Scroll to load more detail`
+            : currentView === 'population'
+            ? 'Click a bubble to see country details'
             : 'Drag to rotate • Scroll to zoom'}
         </p>
       </div>

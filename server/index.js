@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const citiesRouter = require('./routes/cities');
 const weatherRouter = require('./routes/weather');
+const populationRouter = require('./routes/population');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -34,6 +35,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/cities', citiesRouter);
 app.use('/api/weather', weatherRouter);
+app.use('/api/population', populationRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
