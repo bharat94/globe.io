@@ -4,7 +4,7 @@
  * Includes caching and preloading for smooth playback transitions
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { PopulationDataPoint, PopulationYearRange } from '../types/population';
+import type { PopulationDataPoint, PopulationYearRange, CountryDetailedData } from '../types/population';
 
 const API_BASE = 'http://localhost:3001/api/population';
 
@@ -23,6 +23,7 @@ interface UsePopulationDataReturn {
   playbackSpeed: number;
   setPlaybackSpeed: (speed: number) => void;
   getCountryData: (countryCode: string) => Promise<any>;
+  getCountryDetails: (countryCode: string, year: number) => Promise<CountryDetailedData | null>;
 }
 
 // Fetch helper (shared for main fetch and preload)
@@ -161,6 +162,19 @@ export const usePopulationData = (): UsePopulationDataReturn => {
     }
   }, []);
 
+  const getCountryDetails = useCallback(async (countryCode: string, year: number): Promise<CountryDetailedData | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/country/${countryCode}/details?year=${year}`);
+      if (response.ok) {
+        return await response.json();
+      }
+      return null;
+    } catch (err) {
+      console.error('Failed to fetch country details:', err);
+      return null;
+    }
+  }, []);
+
   return {
     populationData,
     loading,
@@ -172,6 +186,7 @@ export const usePopulationData = (): UsePopulationDataReturn => {
     togglePlayback,
     playbackSpeed,
     setPlaybackSpeed,
-    getCountryData
+    getCountryData,
+    getCountryDetails
   };
 };
