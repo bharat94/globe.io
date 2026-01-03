@@ -323,6 +323,71 @@ npm run ingest:jobs             # List jobs
 npm run ingest:stats            # View statistics
 ```
 
+### API Quota Management
+
+The app includes smart API quota management to handle Open-Meteo's 10,000 requests/day limit gracefully.
+
+**How It Works:**
+
+```
+Request for fine resolution (e.g., 1°)
+              ↓
+┌─────────────────────────────────────────────┐
+│ 1. Pre-computed data available? → Use it    │
+│ 2. Quota low (<500 remaining)? → Interpolate│
+│ 3. Quota available? → Call API              │
+│ 4. API fails? → Fallback to interpolation   │
+└─────────────────────────────────────────────┘
+```
+
+**Check Current Quota:**
+```bash
+curl http://localhost:3001/api/weather/quota
+```
+
+Response:
+```json
+{
+  "date": "2024-01-15",
+  "used": 1523,
+  "remaining": 7477,
+  "limit": 9000,
+  "percentUsed": 17
+}
+```
+
+**Bilinear Interpolation:**
+
+When API quota is low or exhausted, the app interpolates fine-resolution data from coarser grids:
+- 10° data → interpolates to 5°, 2.5°, 2°, 1°, 0.5°
+- Typical error: <1°C (temperature varies smoothly)
+- No API calls required
+
+**Recommended Ingestion Strategy:**
+
+1. **Day 1:** Complete 10° resolution (~2,000 API calls)
+   ```bash
+   cd server && npm run ingest:temperature:10
+   ```
+
+2. **Days 2-5:** Complete 5° resolution (~5,700 API calls)
+   ```bash
+   cd server && npm run ingest:temperature:5
+   ```
+
+3. **Optional:** 2.5° for high-detail areas
+
+Once 10° is ingested, the app can serve all zoom levels via interpolation without hitting API limits.
+
+**Resuming Paused Ingestion:**
+```bash
+# List jobs to find your job ID
+node ingestion/index.js jobs list
+
+# Resume a paused job
+node ingestion/index.js ingest --type temperature --resolution 10 --resume <job-id>
+```
+
 ### Adding a New View
 
 The multi-view architecture makes it easy to add new views:
@@ -408,11 +473,17 @@ Tracks ingestion job progress for resumability.
 
 **Weather:**
 
+**GET /api/weather/quota**
+- Returns current API quota status (used, remaining, limit)
+
 **GET /api/weather/grid/:year/:month**
 - Returns temperature heatmap data for the globe
 - Query params: `resolution` (10, 5, 2.5, 2, 1, 0.5), `minLat`, `maxLat`, `minLng`, `maxLng`
-- First checks pre-computed TemperatureData (10°, 5°, 2.5°)
-- Falls back to WeatherCache + Open-Meteo API for finer resolutions
+- Uses smart source selection:
+  - Pre-computed data (10°, 5°, 2.5°) when available
+  - Interpolation when quota is low
+  - Open-Meteo API when quota available
+  - Fallback to interpolation on API failure
 
 **GET /api/weather/years**
 - Returns available year range in the database
