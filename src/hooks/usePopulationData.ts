@@ -1,11 +1,15 @@
 /**
  * Population data hook
  * Fetches and manages country population data for globe visualization
+ * Includes caching and preloading for smooth playback transitions
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PopulationDataPoint, PopulationYearRange } from '../types/population';
 
 const API_BASE = 'http://localhost:3001/api/population';
+
+// In-memory cache for population data by year
+const dataCache = new Map<number, PopulationDataPoint[]>();
 
 interface UsePopulationDataReturn {
   populationData: PopulationDataPoint[];
@@ -21,6 +25,23 @@ interface UsePopulationDataReturn {
   getCountryData: (countryCode: string) => Promise<any>;
 }
 
+// Fetch helper (shared for main fetch and preload)
+async function fetchYearData(year: number): Promise<PopulationDataPoint[]> {
+  // Check cache first
+  if (dataCache.has(year)) {
+    return dataCache.get(year)!;
+  }
+
+  const response = await fetch(`${API_BASE}/data/${year}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch population data: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  dataCache.set(year, data);
+  return data;
+}
+
 export const usePopulationData = (): UsePopulationDataReturn => {
   const [populationData, setPopulationData] = useState<PopulationDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,6 +52,7 @@ export const usePopulationData = (): UsePopulationDataReturn => {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const preloadingRef = useRef<Set<number>>(new Set());
 
   // Fetch year range on mount
   useEffect(() => {
@@ -48,31 +70,54 @@ export const usePopulationData = (): UsePopulationDataReturn => {
     fetchYearRange();
   }, []);
 
+  // Preload next years during playback
+  const preloadYears = useCallback((currentYear: number, maxYear: number) => {
+    const yearsToPreload = [currentYear + 1, currentYear + 2, currentYear + 3];
+    yearsToPreload.forEach(year => {
+      if (year <= maxYear && !dataCache.has(year) && !preloadingRef.current.has(year)) {
+        preloadingRef.current.add(year);
+        fetchYearData(year)
+          .catch(() => {}) // Silently ignore preload errors
+          .finally(() => preloadingRef.current.delete(year));
+      }
+    });
+  }, []);
+
   // Fetch population data when year changes
   useEffect(() => {
     const fetchPopulationData = async () => {
-      setLoading(true);
+      // Check cache first - instant if cached
+      if (dataCache.has(selectedYear)) {
+        setPopulationData(dataCache.get(selectedYear)!);
+        setLoading(false);
+        return;
+      }
+
+      // Only show loading if we don't have any data yet
+      if (populationData.length === 0) {
+        setLoading(true);
+      }
       setError(null);
 
       try {
-        const response = await fetch(`${API_BASE}/data/${selectedYear}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch population data: ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        const data = await fetchYearData(selectedYear);
         setPopulationData(data);
       } catch (err) {
         console.error('Population data fetch error:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch population data');
-        setPopulationData([]);
+        // Don't clear existing data on error - keep showing last good state
       } finally {
         setLoading(false);
       }
     };
 
     fetchPopulationData();
-  }, [selectedYear]);
+
+    // Preload upcoming years if playing
+    if (isPlaying) {
+      preloadYears(selectedYear, yearRange.maxYear);
+    }
+  }, [selectedYear, isPlaying, yearRange.maxYear, preloadYears]);
 
   // Playback logic
   useEffect(() => {
