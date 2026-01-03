@@ -2,7 +2,7 @@
  * Data source type definitions for Globe.io
  */
 
-export type DataSourceType = 'weather' | 'pollution' | 'flights';
+export type DataSourceType = 'weather' | 'earthquakes' | 'satellites' | 'pollution';
 
 export interface ViewportBounds {
   minLat: number;
