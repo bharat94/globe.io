@@ -7,22 +7,36 @@ interface ViewSelectorProps {
 }
 
 const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) => {
+  // Show 4.5 items to hint there's more content
+  // Each item: 60px height, gap: 16px
+  // 4 full items + half of 5th = (4 * 60) + (4 * 16) + 30 = 240 + 64 + 30 = 334px
+  const scrollableHeight = 334;
+
   return (
     <div style={{
       position: 'absolute',
       left: '20px',
       top: '50%',
       transform: 'translateY(-50%)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '20px',
       zIndex: 1000,
       background: 'rgba(0, 0, 0, 0.7)',
-      padding: '20px 15px',
+      padding: '15px',
       borderRadius: '30px',
       backdropFilter: 'blur(10px)',
-      border: '1px solid rgba(255, 255, 255, 0.1)'
+      border: '1px solid rgba(255, 255, 255, 0.1)',
     }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          height: `${scrollableHeight}px`,
+          overflowY: 'scroll',
+          scrollbarWidth: 'none', // Firefox
+          msOverflowStyle: 'none', // IE/Edge
+        }}
+        className="view-list"
+      >
       {views.map((view) => (
         <div
           key={view.id}
@@ -31,7 +45,8 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
             cursor: view.enabled ? 'pointer' : 'not-allowed',
             opacity: view.enabled ? 1 : 0.4,
             transition: 'all 0.3s',
-            position: 'relative'
+            position: 'relative',
+            flexShrink: 0,
           }}
           title={view.description}
         >
@@ -92,8 +107,12 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
           </div>
         </div>
       ))}
+      </div>
 
       <style>{`
+        .view-list::-webkit-scrollbar {
+          display: none;
+        }
         .view-label {
           opacity: 0 !important;
         }
