@@ -119,6 +119,98 @@ router.get('/country/:code', async (req, res) => {
 });
 
 /**
+ * GET /api/population/country/:code/details
+ * Returns detailed demographic data for a country from World Bank API
+ * Fetches: gender split, age distribution, urban/rural, life expectancy, growth rate
+ */
+router.get('/country/:code/details', async (req, res) => {
+  try {
+    const code = req.params.code.toUpperCase();
+    const year = parseInt(req.query.year) || 2020;
+
+    // Get basic country info from our DB
+    const countryInfo = await PopulationData.findOne({ countryCode: code, year })
+      .select('countryName countryCode3 population')
+      .lean();
+
+    if (!countryInfo) {
+      return res.status(404).json({ message: 'Country not found' });
+    }
+
+    // World Bank indicators to fetch
+    const indicators = {
+      'SP.POP.TOTL.FE.ZS': 'femalePercent',      // Female population %
+      'SP.POP.0014.TO.ZS': 'ages0to14',          // Ages 0-14 %
+      'SP.POP.1564.TO.ZS': 'ages15to64',         // Ages 15-64 %
+      'SP.POP.65UP.TO.ZS': 'ages65plus',         // Ages 65+ %
+      'SP.DYN.LE00.IN': 'lifeExpectancy',        // Life expectancy
+      'SP.URB.TOTL.IN.ZS': 'urbanPercent',       // Urban population %
+      'SP.POP.GROW': 'growthRate',               // Annual growth rate %
+      'EN.POP.DNST': 'density',                  // Population density
+      'SP.DYN.TFRT.IN': 'fertilityRate',         // Fertility rate
+    };
+
+    // Fetch all indicators in parallel
+    const indicatorCodes = Object.keys(indicators);
+    const fetchPromises = indicatorCodes.map(async (indicator) => {
+      try {
+        const url = `https://api.worldbank.org/v2/country/${code}/indicator/${indicator}?format=json&date=${year}`;
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (data && data[1] && data[1][0] && data[1][0].value !== null) {
+          return { key: indicators[indicator], value: data[1][0].value };
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    });
+
+    const results = await Promise.all(fetchPromises);
+
+    // Build demographics object
+    const demographics = {};
+    results.forEach(result => {
+      if (result) {
+        demographics[result.key] = result.value;
+      }
+    });
+
+    // Calculate derived values
+    if (demographics.femalePercent) {
+      demographics.malePercent = 100 - demographics.femalePercent;
+    }
+    if (demographics.urbanPercent) {
+      demographics.ruralPercent = 100 - demographics.urbanPercent;
+    }
+
+    // Get population history for sparkline
+    const history = await PopulationData.find({ countryCode: code })
+      .select('year population')
+      .sort({ year: 1 })
+      .lean();
+
+    res.json({
+      countryCode: code,
+      countryCode3: countryInfo.countryCode3,
+      name: countryInfo.countryName,
+      year,
+      population: countryInfo.population,
+      populationFormatted: formatPopulation(countryInfo.population),
+      demographics,
+      history: history.map(h => ({
+        year: h.year,
+        population: h.population
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching country details:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/**
  * GET /api/population/top/:year
  * Returns top N countries by population for a given year
  */

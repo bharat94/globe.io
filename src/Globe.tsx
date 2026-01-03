@@ -376,9 +376,8 @@ const GlobeComponent = () => {
         }}
         atmosphereColor={isDayMode ? "#4d9fff" : "#3a228a"}
         atmosphereAltitude={0.15}
-        // Smooth transitions for points - only merge in population view (explorer needs individual interactions)
-        pointsMerge={currentView === 'population'}
-        pointsTransitionDuration={currentView === 'population' ? 800 : 0}
+        // Transition duration for points (caching helps keep transitions smooth without pointsMerge)
+        pointsTransitionDuration={500}
         // Weather heatmap layer (only in weather view)
         heatmapsData={currentView === 'weather' ? [weatherData.heatmapData] : []}
         heatmapPointLat="lat"
@@ -627,6 +626,7 @@ const GlobeComponent = () => {
               country={selectedCountry}
               currentYear={populationData.selectedYear}
               onClose={() => setSelectedCountry(null)}
+              getCountryDetails={populationData.getCountryDetails}
             />
           )}
         </>
