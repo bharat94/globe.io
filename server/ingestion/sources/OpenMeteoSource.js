@@ -48,7 +48,7 @@ class OpenMeteoSource {
     const latitudes = points.map(p => p.lat).join(',');
     const longitudes = points.map(p => p.lng).join(',');
 
-    const url = `${ARCHIVE_API_URL}?latitude=${latitudes}&longitude=${longitudes}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min&timezone=auto`;
+    const url = `${ARCHIVE_API_URL}?latitude=${latitudes}&longitude=${longitudes}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min&timezone=GMT`;
 
     // Fetch with retry
     let lastError;
