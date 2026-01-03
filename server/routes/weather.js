@@ -1,247 +1,58 @@
 const express = require('express');
 const router = express.Router();
 const WeatherData = require('../models/WeatherData');
-const WeatherCache = require('../models/WeatherCache');
-const TemperatureData = require('../models/TemperatureData');
-const { fetchGridTemperature } = require('../services/openMeteo');
-const { generateGlobalGrid: generateGrid, normalizeTemperature: normalizeTemp } = require('../utils/gridUtils');
-
-// Pre-computed resolutions stored in TemperatureData
-const PRECOMPUTED_RESOLUTIONS = [10, 5, 2.5];
-
-// Continental bounding boxes for land detection (same as frontend)
-const CONTINENTAL_BOUNDS = [
-  { minLat: 15, maxLat: 70, minLng: -170, maxLng: -50 },    // North America
-  { minLat: 7, maxLat: 25, minLng: -120, maxLng: -60 },     // Central America
-  { minLat: -55, maxLat: 15, minLng: -80, maxLng: -35 },    // South America
-  { minLat: 35, maxLat: 70, minLng: -10, maxLng: 40 },      // Europe
-  { minLat: -35, maxLat: 37, minLng: -20, maxLng: 55 },     // Africa
-  { minLat: 12, maxLat: 42, minLng: 25, maxLng: 65 },       // Middle East
-  { minLat: 5, maxLat: 75, minLng: 60, maxLng: 145 },       // Asia
-  { minLat: -10, maxLat: 25, minLng: 95, maxLng: 140 },     // Southeast Asia
-  { minLat: 30, maxLat: 45, minLng: 125, maxLng: 145 },     // Japan & Korea
-  { minLat: -45, maxLat: -10, minLng: 110, maxLng: 155 },   // Australia
-  { minLat: -47, maxLat: -34, minLng: 166, maxLng: 179 },   // New Zealand
-  { minLat: 5, maxLat: 35, minLng: 68, maxLng: 98 },        // India
-  { minLat: 50, maxLat: 60, minLng: -11, maxLng: 2 },       // UK & Ireland
-  { minLat: 55, maxLat: 71, minLng: 4, maxLng: 32 },        // Scandinavia
-  { minLat: 40, maxLat: 75, minLng: 140, maxLng: 180 },     // Russia (east)
-  { minLat: 55, maxLat: 70, minLng: -180, maxLng: -130 },   // Alaska
-];
-
-const isLandPoint = (lat, lng) => {
-  return CONTINENTAL_BOUNDS.some(b =>
-    lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng
-  );
-};
-
-const generateGlobalGrid = (resolution = 10) => {
-  const points = [];
-  for (let lat = -60; lat <= 70; lat += resolution) {
-    for (let lng = -180; lng < 180; lng += resolution) {
-      if (isLandPoint(lat, lng)) {
-        points.push({ lat, lng });
-      }
-    }
-  }
-  return points;
-};
-
-// Normalize temperature to 0-1 range for heatmap
-const normalizeTemperature = (temp) => {
-  const min = -40;
-  const max = 45;
-  return Math.max(0, Math.min(1, (temp - min) / (max - min)));
-};
+const DataService = require('../datasources/DataService');
+const { normalizeTemperature } = require('../utils/gridUtils');
 
 // GET available years range
 router.get('/years', async (req, res) => {
   try {
-    const result = await WeatherData.aggregate([
-      {
-        $group: {
-          _id: null,
-          minYear: { $min: '$year' },
-          maxYear: { $max: '$year' }
-        }
-      }
-    ]);
-
-    if (result.length === 0) {
-      return res.json({ minYear: 2000, maxYear: 2024 });
-    }
-
+    const metadata = await DataService.getMetadata('weather');
     res.json({
-      minYear: result[0].minYear,
-      maxYear: result[0].maxYear
+      minYear: metadata.minYear,
+      maxYear: metadata.maxYear
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Generate grid within viewport bounds
-const generateViewportGrid = (resolution, minLat, maxLat, minLng, maxLng) => {
-  const points = [];
-  // Snap to grid alignment
-  const startLat = Math.floor(minLat / resolution) * resolution;
-  const startLng = Math.floor(minLng / resolution) * resolution;
-
-  for (let lat = startLat; lat <= maxLat; lat += resolution) {
-    for (let lng = startLng; lng <= maxLng; lng += resolution) {
-      // Normalize longitude to -180 to 180
-      let normLng = lng;
-      if (normLng > 180) normLng -= 360;
-      if (normLng < -180) normLng += 360;
-
-      if (isLandPoint(lat, normLng)) {
-        points.push({ lat, lng: normLng });
-      }
-    }
-  }
-  return points;
-};
-
 // GET global grid data for a specific year and month
 // Supports query params: resolution (default 10), minLat, maxLat, minLng, maxLng
-// First checks pre-computed TemperatureData, falls back to WeatherCache/API for finer resolutions
+// Uses DataService which automatically selects static or dynamic source
 router.get('/grid/:year/:month', async (req, res) => {
   try {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     const resolution = parseFloat(req.query.resolution) || 10;
 
-    // Viewport bounds (optional)
-    const minLat = req.query.minLat ? parseFloat(req.query.minLat) : -60;
-    const maxLat = req.query.maxLat ? parseFloat(req.query.maxLat) : 70;
-    const minLng = req.query.minLng ? parseFloat(req.query.minLng) : -180;
-    const maxLng = req.query.maxLng ? parseFloat(req.query.maxLng) : 180;
-
-    // Validate year range (Open-Meteo historical data availability)
+    // Validate year range
     if (year < 1940 || year > new Date().getFullYear()) {
       return res.status(400).json({ message: 'Year out of range (1940-present)' });
     }
 
-    // Validate resolution (support finer grids for zoomed views)
+    // Validate resolution
     const validResolutions = [10, 5, 2.5, 2, 1, 0.5];
     const actualResolution = validResolutions.includes(resolution) ? resolution : 10;
 
-    // Generate grid points (either global or viewport)
-    const isViewportQuery = req.query.minLat !== undefined;
-    const allGridPoints = isViewportQuery
-      ? generateViewportGrid(actualResolution, minLat, maxLat, minLng, maxLng)
-      : generateGlobalGrid(actualResolution);
+    // Parse optional viewport bounds
+    const bounds = req.query.minLat ? {
+      minLat: parseFloat(req.query.minLat),
+      maxLat: parseFloat(req.query.maxLat),
+      minLng: parseFloat(req.query.minLng),
+      maxLng: parseFloat(req.query.maxLng)
+    } : null;
 
-    console.log(`Grid: resolution=${actualResolution}°, points=${allGridPoints.length}, viewport=${isViewportQuery}`);
-
-    // ========================================
-    // STRATEGY 1: Check pre-computed TemperatureData first (for 10°, 5°, 2.5°)
-    // ========================================
-    if (PRECOMPUTED_RESOLUTIONS.includes(actualResolution)) {
-      const precomputedData = await TemperatureData.find({
-        resolution: actualResolution,
-        year,
-        month
-      }).lean();
-
-      if (precomputedData.length > 0) {
-        console.log(`Found ${precomputedData.length} pre-computed records in TemperatureData`);
-
-        // Filter to viewport if needed
-        let filteredData = precomputedData;
-        if (isViewportQuery) {
-          filteredData = precomputedData.filter(d =>
-            d.lat >= minLat && d.lat <= maxLat &&
-            d.lng >= minLng && d.lng <= maxLng
-          );
-        }
-
-        const heatmapData = filteredData.map(d => ({
-          lat: d.lat,
-          lng: d.lng,
-          weight: normalizeTemperature(d.temperature.avg),
-          temperature: d.temperature
-        }));
-
-        console.log(`Returning ${heatmapData.length} pre-computed heatmap points`);
-        return res.json(heatmapData);
-      }
-
-      console.log(`No pre-computed data for resolution=${actualResolution}°, falling back to cache/API`);
-    }
-
-    // ========================================
-    // STRATEGY 2: Fall back to WeatherCache + Open-Meteo API (for finer resolutions)
-    // ========================================
-    const cacheQuery = { year, month };
-    const cachedData = await WeatherCache.find(cacheQuery);
-    const cachedMap = new Map();
-    cachedData.forEach(d => {
-      cachedMap.set(`${d.lat},${d.lng}`, d);
+    // Use DataService to fetch data (handles static vs dynamic selection)
+    const data = await DataService.fetchGridData('weather', {
+      year,
+      month,
+      resolution: actualResolution,
+      bounds
     });
 
-    // Find points that need fetching
-    const missingPoints = allGridPoints.filter(p => !cachedMap.has(`${p.lat},${p.lng}`));
-
-    console.log(`Cache: ${cachedData.length} total, ${allGridPoints.length - missingPoints.length} matching, ${missingPoints.length} missing`);
-
-    // Fetch missing points from Open-Meteo
-    if (missingPoints.length > 0) {
-      console.log(`Fetching ${missingPoints.length} points from Open-Meteo...`);
-
-      try {
-        const fetchedData = await fetchGridTemperature(missingPoints, year, month);
-
-        // Save to cache
-        if (fetchedData.length > 0) {
-          const cacheEntries = fetchedData.map(d => ({
-            lat: d.lat,
-            lng: d.lng,
-            year,
-            month,
-            temperature: d.temperature,
-            source: 'open-meteo',
-            fetchedAt: new Date()
-          }));
-
-          // Use insertMany with ordered: false to continue on duplicates
-          try {
-            await WeatherCache.insertMany(cacheEntries, { ordered: false });
-            console.log(`Cached ${cacheEntries.length} new entries`);
-          } catch (insertError) {
-            // Ignore duplicate key errors, log others
-            if (insertError.code !== 11000) {
-              console.error('Cache insert error:', insertError.message);
-            }
-          }
-
-          // Add to our result map
-          fetchedData.forEach(d => {
-            cachedMap.set(`${d.lat},${d.lng}`, d);
-          });
-        }
-      } catch (fetchError) {
-        console.error('Open-Meteo fetch error:', fetchError.message);
-        // Continue with cached data only
-      }
-    }
-
-    // Build response with all available data
-    const heatmapData = [];
-    allGridPoints.forEach(point => {
-      const data = cachedMap.get(`${point.lat},${point.lng}`);
-      if (data && data.temperature) {
-        heatmapData.push({
-          lat: point.lat,
-          lng: point.lng,
-          weight: normalizeTemperature(data.temperature.avg),
-          temperature: data.temperature
-        });
-      }
-    });
-
-    console.log(`Returning ${heatmapData.length} heatmap points (from cache/API)`);
-    res.json(heatmapData);
+    console.log(`Grid: resolution=${actualResolution}°, points=${data.length}, bounds=${!!bounds}`);
+    res.json(data);
   } catch (error) {
     console.error('Grid endpoint error:', error);
     res.status(500).json({ message: error.message });
