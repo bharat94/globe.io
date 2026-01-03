@@ -5,6 +5,7 @@ import type { City } from './citiesData';
 import type { ViewType } from './types/views';
 import type { WeatherDataPoint } from './types/weather';
 import type { PopulationDataPoint } from './types/population';
+import type { Earthquake } from './types/earthquake';
 import { VIEWS } from './types/views';
 import ViewSelector from './components/ViewSelector';
 import TimeSlider from './components/weather/TimeSlider';
@@ -13,8 +14,10 @@ import WeatherLegend from './components/weather/WeatherLegend';
 import PopulationTimeSlider from './components/population/PopulationTimeSlider';
 import PopulationPanel from './components/population/PopulationPanel';
 import PopulationLegend from './components/population/PopulationLegend';
+import { EarthquakePanel, EarthquakeLegend, EarthquakeControls } from './components/earthquake';
 import { useWeatherData } from './hooks/useWeatherData';
 import { usePopulationData } from './hooks/usePopulationData';
+import { useEarthquakeData } from './hooks/useEarthquakeData';
 import { getTemperatureColor } from './utils/weatherUtils';
 
 // Convert country code to flag emoji
@@ -44,6 +47,10 @@ const GlobeComponent = () => {
 
   // Population data hook
   const populationData = usePopulationData();
+
+  // Earthquake data hook
+  const earthquakeData = useEarthquakeData();
+
   const setViewportRef = useRef(weatherData.setViewport);
   setViewportRef.current = weatherData.setViewport;
 
@@ -114,6 +121,12 @@ const GlobeComponent = () => {
           return;
         }
 
+        if (currentView === 'earthquakes') {
+          // Earthquake data is handled by useEarthquakeData hook
+          setLoading(false);
+          return;
+        }
+
         setLoading(false);
       } catch (err) {
         console.error(`Error fetching ${currentView} data:`, err);
@@ -151,6 +164,17 @@ const GlobeComponent = () => {
       );
     }
   }, []);
+
+  // Handle click on earthquake
+  const handleEarthquakeClick = useCallback((earthquake: Earthquake) => {
+    earthquakeData.setSelectedEarthquake(earthquake);
+    if (globeEl.current) {
+      globeEl.current.pointOfView(
+        { lat: earthquake.lat, lng: earthquake.lng, altitude: 1.5 },
+        1000
+      );
+    }
+  }, [earthquakeData]);
 
   // Handle click on weather heatmap point
   const handleWeatherPointClick = useCallback(async (point: any) => {
@@ -325,45 +349,81 @@ const GlobeComponent = () => {
           ? "//unpkg.com/three-globe/example/img/night-sky.png"
           : "//unpkg.com/three-globe/example/img/night-sky.png"
         }
-        // Show city markers in explorer/weather views, population bubbles in population view
+        // Show different point data based on view
         pointsData={
           currentView === 'population'
             ? populationData.populationData
+            : currentView === 'earthquakes'
+            ? earthquakeData.earthquakes
             : (currentView === 'explorer' || currentView === 'weather' ? cities : [])
         }
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={currentView === 'population' ? 0.01 : (currentView === 'weather' ? 0.05 : 0.02)}
-        pointColor={(d: any) => currentView === 'population' ? '#4FC3F7' : (d.color || '#ffffff')}
-        pointRadius={(d: any) => currentView === 'population' ? 0.4 + (d.weight * 2.5) : 0.8}
-        pointLabel={(d: any) => currentView === 'population' ? `
-          <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
-            <div style="font-size: 24px; margin-bottom: 8px;">${getCountryFlag(d.countryCode)}</div>
-            <b style="font-size: 16px; color: #4FC3F7;">${d.name}</b><br/>
-            <div style="margin-top: 8px; font-size: 14px;">
-              <b>Population:</b> ${d.populationFormatted}<br/>
-              <span style="opacity: 0.7; font-size: 12px;">${d.population?.toLocaleString() || 0} people</span>
+        pointAltitude={
+          currentView === 'population' ? 0.01
+          : currentView === 'earthquakes' ? 0.08
+          : (currentView === 'weather' ? 0.05 : 0.02)
+        }
+        pointColor={(d: any) =>
+          currentView === 'population' ? '#4FC3F7'
+          : currentView === 'earthquakes' ? d.color
+          : (d.color || '#ffffff')
+        }
+        pointRadius={(d: any) =>
+          currentView === 'population' ? 0.4 + (d.weight * 2.5)
+          : currentView === 'earthquakes' ? 0.3 + (d.weight * 3)
+          : 0.8
+        }
+        pointLabel={(d: any) =>
+          currentView === 'population' ? `
+            <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
+              <div style="font-size: 24px; margin-bottom: 8px;">${getCountryFlag(d.countryCode)}</div>
+              <b style="font-size: 16px; color: #4FC3F7;">${d.name}</b><br/>
+              <div style="margin-top: 8px; font-size: 14px;">
+                <b>Population:</b> ${d.populationFormatted}<br/>
+                <span style="opacity: 0.7; font-size: 12px;">${d.population?.toLocaleString() || 0} people</span>
+              </div>
             </div>
-          </div>
-        ` : `
-          <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
-            <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
-            <span style="font-size: 13px; opacity: 0.8;">${d.country}</span><br/>
-            <div style="margin-top: 8px; font-size: 12px;">
-              <b>Population:</b> ${d.population}<br/>
-              <b>Area:</b> ${d.area}
+          ` : currentView === 'earthquakes' ? `
+            <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${d.color}44;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: ${d.color}33; border: 2px solid ${d.color}; display: flex; align-items: center; justify-content: center;">
+                  <span style="font-size: 18px; font-weight: bold; color: ${d.color};">${d.magnitude.toFixed(1)}</span>
+                </div>
+                <div>
+                  <div style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase;">Magnitude</div>
+                  <div style="font-size: 14px; font-weight: 600;">${d.magnitude >= 6 ? 'Strong' : d.magnitude >= 5 ? 'Moderate' : 'Light'}</div>
+                </div>
+              </div>
+              <div style="font-size: 13px; margin-bottom: 8px;">${d.place}</div>
+              <div style="display: flex; gap: 16px; font-size: 12px; color: rgba(255,255,255,0.7);">
+                <span>Depth: ${d.depth.toFixed(1)}km</span>
+                <span>${d.timeAgo}</span>
+              </div>
+              ${d.isRecent ? '<div style="margin-top: 8px; padding: 4px 8px; background: rgba(255,68,68,0.3); border-radius: 4px; font-size: 11px; color: #ff6666; display: inline-block;">Recent Event</div>' : ''}
             </div>
-          </div>
-        `}
+          ` : `
+            <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
+              <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
+              <span style="font-size: 13px; opacity: 0.8;">${d.country}</span><br/>
+              <div style="margin-top: 8px; font-size: 12px;">
+                <b>Population:</b> ${d.population}<br/>
+                <b>Area:</b> ${d.area}
+              </div>
+            </div>
+          `
+        }
         onPointClick={(point: any) => {
           if (currentView === 'explorer') {
             handleCityClick(point as City);
           } else if (currentView === 'population') {
             handlePopulationClick(point as PopulationDataPoint);
+          } else if (currentView === 'earthquakes') {
+            handleEarthquakeClick(point as Earthquake);
           }
         }}
         onPointHover={(point: any) => {
-          if (currentView === 'explorer' || currentView === 'population') {
+          if (currentView === 'explorer' || currentView === 'population' || currentView === 'earthquakes') {
             if (currentView === 'explorer') {
               setHoverCity(point as City | null);
             }
@@ -632,6 +692,32 @@ const GlobeComponent = () => {
         </>
       )}
 
+      {/* Earthquake View UI */}
+      {currentView === 'earthquakes' && (
+        <>
+          <EarthquakeControls
+            timeRange={earthquakeData.timeRange}
+            onTimeRangeChange={earthquakeData.setTimeRange}
+            minMagnitude={earthquakeData.minMagnitude}
+            onMinMagnitudeChange={earthquakeData.setMinMagnitude}
+            loading={earthquakeData.loading}
+          />
+          <EarthquakeLegend
+            metadata={earthquakeData.metadata}
+            lastUpdated={earthquakeData.lastUpdated}
+            onRefresh={earthquakeData.refresh}
+          />
+          {earthquakeData.selectedEarthquake && (
+            <EarthquakePanel
+              earthquake={earthquakeData.selectedEarthquake}
+              details={earthquakeData.earthquakeDetails}
+              loading={earthquakeData.detailsLoading}
+              onClose={() => earthquakeData.setSelectedEarthquake(null)}
+            />
+          )}
+        </>
+      )}
+
       <div style={{
         position: 'absolute',
         bottom: '20px',
@@ -653,6 +739,8 @@ const GlobeComponent = () => {
             ? `${weatherData.loading ? 'Loading...' : `${weatherData.heatmapData.length} points @ ${weatherData.currentResolution}° grid`}`
             : currentView === 'population'
             ? `${populationData.loading ? 'Loading...' : `${populationData.populationData.length} countries`}`
+            : currentView === 'earthquakes'
+            ? `${earthquakeData.loading ? 'Loading...' : `${earthquakeData.earthquakes.length} earthquakes`}`
             : VIEWS.find(v => v.id === currentView)?.description}
         </p>
         <p style={{ margin: '5px 0', fontSize: '12px', opacity: 0.7 }}>
@@ -660,6 +748,8 @@ const GlobeComponent = () => {
             ? `Zoom: ${weatherData.currentZoom} • Scroll to load more detail`
             : currentView === 'population'
             ? 'Click a bubble to see country details'
+            : currentView === 'earthquakes'
+            ? 'Click a marker for details • Auto-refreshes every 5 min'
             : 'Drag to rotate • Scroll to zoom'}
         </p>
       </div>
