@@ -145,10 +145,14 @@ export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn =
       const cached = dataSourceRef.current.getFromCache(query);
       if (cached) {
         setData(cached);
+        setLoading(false);
         return;
       }
 
-      setLoading(true);
+      // Only show loading if we have no data yet (prevents "blip" during transitions)
+      if (data.length === 0) {
+        setLoading(true);
+      }
       setError(null);
 
       try {
