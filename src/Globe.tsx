@@ -376,9 +376,9 @@ const GlobeComponent = () => {
         }}
         atmosphereColor={isDayMode ? "#4d9fff" : "#3a228a"}
         atmosphereAltitude={0.15}
-        // Smooth transitions for points (population bubbles)
-        pointsMerge={true}
-        pointsTransitionDuration={800}
+        // Smooth transitions for points - only merge in population view (explorer needs individual interactions)
+        pointsMerge={currentView === 'population'}
+        pointsTransitionDuration={currentView === 'population' ? 800 : 0}
         // Weather heatmap layer (only in weather view)
         heatmapsData={currentView === 'weather' ? [weatherData.heatmapData] : []}
         heatmapPointLat="lat"
