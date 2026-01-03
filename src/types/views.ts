@@ -35,7 +35,7 @@ export const VIEWS: ViewConfig[] = [
     name: 'Earthquakes',
     icon: '🌋',
     description: 'Visualize seismic activity worldwide',
-    enabled: false // Coming soon - USGS earthquake data
+    enabled: true
   },
   {
     id: 'satellites',
