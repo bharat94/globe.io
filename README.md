@@ -72,6 +72,8 @@ Click any of 50 cities to see:
   - Life expectancy, growth rate, fertility rate
   - Population history sparkline
 
+![Population View](screenshot-population.png)
+
 ## Data Sources
 
 | Data | Source | Coverage |
