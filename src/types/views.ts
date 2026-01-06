@@ -42,7 +42,7 @@ export const VIEWS: ViewConfig[] = [
     name: 'Satellites',
     icon: '🛰️',
     description: 'Track satellites orbiting Earth',
-    enabled: false // Coming soon - orbital visualization
+    enabled: true
   },
   {
     id: 'pollution',

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import Globe from 'react-globe.gl';
 import * as THREE from 'three';
 import type { City } from './citiesData';
@@ -6,6 +6,8 @@ import type { ViewType } from './types/views';
 import type { WeatherDataPoint } from './types/weather';
 import type { PopulationDataPoint } from './types/population';
 import type { Earthquake } from './types/earthquake';
+import type { SatellitePosition, SatelliteCategory } from './types/satellite';
+import { SATELLITE_CATEGORIES, EARTH_RADIUS_KM } from './types/satellite';
 import { VIEWS } from './types/views';
 import ViewSelector from './components/ViewSelector';
 import TimeSlider from './components/weather/TimeSlider';
@@ -15,9 +17,11 @@ import PopulationTimeSlider from './components/population/PopulationTimeSlider';
 import PopulationPanel from './components/population/PopulationPanel';
 import PopulationLegend from './components/population/PopulationLegend';
 import { EarthquakePanel, EarthquakeLegend, EarthquakeControls } from './components/earthquake';
+import { SatellitePanel, SatelliteLegend, SatelliteControls } from './components/satellite';
 import { useWeatherData } from './hooks/useWeatherData';
 import { usePopulationData } from './hooks/usePopulationData';
 import { useEarthquakeData } from './hooks/useEarthquakeData';
+import { useSatelliteData } from './hooks/useSatelliteData';
 import { getTemperatureColor } from './utils/weatherUtils';
 
 // Convert country code to flag emoji
@@ -50,6 +54,9 @@ const GlobeComponent = () => {
 
   // Earthquake data hook
   const earthquakeData = useEarthquakeData();
+
+  // Satellite data hook
+  const satelliteData = useSatelliteData();
 
   const setViewportRef = useRef(weatherData.setViewport);
   setViewportRef.current = weatherData.setViewport;
@@ -123,6 +130,12 @@ const GlobeComponent = () => {
 
         if (currentView === 'earthquakes') {
           // Earthquake data is handled by useEarthquakeData hook
+          setLoading(false);
+          return;
+        }
+
+        if (currentView === 'satellites') {
+          // Satellite data is handled by useSatelliteData hook
           setLoading(false);
           return;
         }
@@ -235,6 +248,85 @@ const GlobeComponent = () => {
 
     return orb;
   }, []);
+
+  // Create 3D satellite object
+  const createSatelliteObject = useCallback((sat: SatellitePosition) => {
+    const group = new THREE.Group();
+    const categoryConfig = SATELLITE_CATEGORIES[sat.category];
+    const color = categoryConfig?.color || '#ffffff';
+
+    // Different sizes for different categories
+    const isISS = sat.category === 'iss';
+    const baseSize = isISS ? 1.5 : 0.4;
+
+    // Main satellite body
+    if (isISS) {
+      // ISS - larger, distinctive shape
+      const bodyGeometry = new THREE.BoxGeometry(baseSize * 2, baseSize * 0.5, baseSize * 0.5);
+      const bodyMaterial = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      group.add(body);
+
+      // Solar panels
+      const panelGeometry = new THREE.BoxGeometry(baseSize * 0.3, baseSize * 3, baseSize * 0.1);
+      const panelMaterial = new THREE.MeshBasicMaterial({ color: '#4169E1' });
+      const leftPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+      leftPanel.position.set(-baseSize * 0.8, 0, 0);
+      group.add(leftPanel);
+      const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+      rightPanel.position.set(baseSize * 0.8, 0, 0);
+      group.add(rightPanel);
+    } else {
+      // Regular satellite - small glowing sphere
+      const satGeometry = new THREE.SphereGeometry(baseSize, 8, 8);
+      const satMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.9
+      });
+      const satMesh = new THREE.Mesh(satGeometry, satMaterial);
+      group.add(satMesh);
+    }
+
+    // Glow effect
+    const glowSize = isISS ? baseSize * 4 : baseSize * 2.5;
+    const glowGeometry = new THREE.SphereGeometry(glowSize, 16, 16);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: isISS ? 0.3 : 0.15,
+      side: THREE.BackSide
+    });
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    group.add(glow);
+
+    // Add point light for ISS
+    if (isISS) {
+      const light = new THREE.PointLight(color, 1, 50);
+      group.add(light);
+    }
+
+    return group;
+  }, []);
+
+  // Handle satellite click
+  const handleSatelliteClick = useCallback((sat: SatellitePosition) => {
+    const satellite = satelliteData.satellites.find(s => s.id === sat.id);
+    if (satellite) {
+      satelliteData.setSelectedSatellite(satellite);
+    }
+  }, [satelliteData]);
+
+  // Toggle satellite category
+  const handleToggleSatelliteCategory = useCallback((category: SatelliteCategory) => {
+    satelliteData.setSelectedCategories(prev => {
+      if (prev.includes(category)) {
+        return prev.filter(c => c !== category);
+      } else {
+        return [...prev, category];
+      }
+    });
+  }, [satelliteData]);
 
   if (loading) {
     return (
@@ -469,6 +561,48 @@ const GlobeComponent = () => {
         ringRepeatPeriod={(d: any) => {
           // Recent earthquakes pulse faster, all pulse visibly
           return d.isRecent ? 600 : 1200;
+        }}
+        // Custom 3D layer for satellites
+        customLayerData={currentView === 'satellites' ? satelliteData.positions : []}
+        customThreeObject={currentView === 'satellites' ? createSatelliteObject : undefined}
+        customThreeObjectUpdate={(obj: THREE.Object3D, sat: SatellitePosition) => {
+          // Update position dynamically as satellites move
+          if (globeEl.current && sat.lat !== undefined) {
+            const coords = globeEl.current.getCoords(sat.lat, sat.lng, sat.alt);
+            if (coords) {
+              obj.position.set(coords.x, coords.y, coords.z);
+            }
+          }
+        }}
+        customLayerLabel={(sat: SatellitePosition) => `
+          <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${sat.color}44;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: ${sat.color}33; border: 2px solid ${sat.color}; display: flex; align-items: center; justify-content: center;">
+                <span style="font-size: 18px;">${SATELLITE_CATEGORIES[sat.category]?.icon || '🛰️'}</span>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase;">${SATELLITE_CATEGORIES[sat.category]?.name || 'Satellite'}</div>
+                <div style="font-size: 14px; font-weight: 600;">${sat.name}</div>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.8);">
+              <div>Alt: ${(sat.alt * EARTH_RADIUS_KM).toFixed(0)} km</div>
+              <div>Vel: ${sat.velocity.toFixed(1)} km/s</div>
+              <div>Lat: ${sat.lat.toFixed(2)}°</div>
+              <div>Lng: ${sat.lng.toFixed(2)}°</div>
+            </div>
+          </div>
+        `}
+        onCustomLayerClick={(sat: SatellitePosition) => {
+          if (currentView === 'satellites') {
+            handleSatelliteClick(sat);
+          }
+        }}
+        onCustomLayerHover={(sat: SatellitePosition | null) => {
+          const canvas = document.querySelector('canvas');
+          if (canvas) {
+            canvas.style.cursor = sat ? 'pointer' : 'grab';
+          }
         }}
         onZoom={handleZoom}
         onGlobeClick={(coords: { lat: number; lng: number }) => {
@@ -740,6 +874,33 @@ const GlobeComponent = () => {
         </>
       )}
 
+      {/* Satellites View UI */}
+      {currentView === 'satellites' && (
+        <>
+          <SatelliteControls
+            isAnimating={satelliteData.isAnimating}
+            onToggleAnimation={satelliteData.toggleAnimation}
+            timeMultiplier={satelliteData.timeMultiplier}
+            onTimeMultiplierChange={satelliteData.setTimeMultiplier}
+            satelliteCount={satelliteData.positions.length}
+            loading={satelliteData.loading}
+          />
+          <SatelliteLegend
+            metadata={satelliteData.metadata}
+            selectedCategories={satelliteData.selectedCategories}
+            onToggleCategory={handleToggleSatelliteCategory}
+            currentTime={satelliteData.currentTime}
+          />
+          {satelliteData.selectedSatellite && (
+            <SatellitePanel
+              satellite={satelliteData.selectedSatellite}
+              position={satelliteData.positions.find(p => p.id === satelliteData.selectedSatellite?.id) || null}
+              onClose={() => satelliteData.setSelectedSatellite(null)}
+            />
+          )}
+        </>
+      )}
+
       <div style={{
         position: 'absolute',
         bottom: '20px',
@@ -763,6 +924,8 @@ const GlobeComponent = () => {
             ? `${populationData.loading ? 'Loading...' : `${populationData.populationData.length} countries`}`
             : currentView === 'earthquakes'
             ? `${earthquakeData.loading ? 'Loading...' : `${earthquakeData.earthquakes.length} earthquakes`}`
+            : currentView === 'satellites'
+            ? `${satelliteData.loading ? 'Loading TLE data...' : `${satelliteData.positions.length} satellites tracked`}`
             : VIEWS.find(v => v.id === currentView)?.description}
         </p>
         <p style={{ margin: '5px 0', fontSize: '12px', opacity: 0.7 }}>
@@ -772,6 +935,8 @@ const GlobeComponent = () => {
             ? 'Click a bubble to see country details'
             : currentView === 'earthquakes'
             ? 'Click a marker for details • Auto-refreshes every 5 min'
+            : currentView === 'satellites'
+            ? 'Real-time orbital positions • Click for details'
             : 'Drag to rotate • Scroll to zoom'}
         </p>
       </div>
