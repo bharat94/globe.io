@@ -1,7 +1,12 @@
 import React from 'react';
-import { AQI_CATEGORIES, type AQICategory } from '../../types/pollution';
+import { AQI_CATEGORIES, POLLUTANT_CONFIG, type AQICategory, type PollutantType } from '../../types/pollution';
 
-const PollutionLegend: React.FC = () => {
+interface PollutionLegendProps {
+  selectedPollutant: PollutantType;
+}
+
+const PollutionLegend: React.FC<PollutionLegendProps> = ({ selectedPollutant }) => {
+  const config = POLLUTANT_CONFIG[selectedPollutant];
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
     bottom: '100px',
@@ -25,45 +30,68 @@ const PollutionLegend: React.FC = () => {
     gap: '8px'
   };
 
-  const categories = Object.entries(AQI_CATEGORIES) as [AQICategory, typeof AQI_CATEGORIES[AQICategory]][];
+  // Build scale labels from thresholds
+  const scaleLabels = config.thresholds.map((threshold, index) => {
+    const prevThreshold = index === 0 ? 0 : config.thresholds[index - 1];
+    return {
+      color: config.colors[index],
+      range: `${prevThreshold}-${threshold}`,
+      label: index === 0 ? 'Good' : index === 1 ? 'Moderate' : index === 2 ? 'Unhealthy (Sensitive)' : index === 3 ? 'Unhealthy' : 'Very Unhealthy'
+    };
+  });
+  // Add hazardous
+  scaleLabels.push({
+    color: config.colors[config.colors.length - 1],
+    range: `>${config.thresholds[config.thresholds.length - 1]}`,
+    label: 'Hazardous'
+  });
 
   return (
     <div style={containerStyle}>
       <div style={titleStyle}>
         <span style={{ fontSize: '16px' }}>🏭</span>
-        <span>Air Quality Index (AQI)</span>
+        <span>{config.name}</span>
       </div>
 
-      {/* AQI Scale */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        {categories.map(([key, config]) => (
+      {/* Description */}
+      <div style={{
+        fontSize: '11px',
+        color: 'rgba(255,255,255,0.6)',
+        marginBottom: '12px',
+        lineHeight: '1.4'
+      }}>
+        {config.description}
+        {config.unit && <span style={{ color: 'rgba(255,255,255,0.4)' }}> ({config.unit})</span>}
+      </div>
+
+      {/* Color Scale */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {scaleLabels.map((item, index) => (
           <div
-            key={key}
+            key={index}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              padding: '6px 8px',
+              padding: '4px 6px',
               borderRadius: '4px',
               background: 'rgba(255, 255, 255, 0.03)'
             }}
           >
             <div
               style={{
-                width: '24px',
-                height: '14px',
-                borderRadius: '3px',
-                background: config.color,
+                width: '20px',
+                height: '12px',
+                borderRadius: '2px',
+                background: item.color,
                 flexShrink: 0
               }}
             />
-            <div style={{ flex: 1, fontSize: '11px' }}>
-              <div style={{ fontWeight: '500', color: 'rgba(255,255,255,0.9)' }}>
-                {config.name}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px' }}>
-                {config.range[0]}-{config.range[1]}
-              </div>
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)' }}>
+              {item.range}
+            </div>
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginLeft: 'auto' }}>
+              {item.label}
             </div>
           </div>
         ))}

@@ -938,8 +938,10 @@ const GlobeComponent = () => {
             lastUpdated={pollutionData.lastUpdated}
             onRefresh={pollutionData.refresh}
             fetchProgress={pollutionData.fetchProgress}
+            selectedPollutant={pollutionData.selectedPollutant}
+            onPollutantChange={pollutionData.setSelectedPollutant}
           />
-          <PollutionLegend />
+          <PollutionLegend selectedPollutant={pollutionData.selectedPollutant} />
           {pollutionData.selectedLocation && (
             <PollutionPanel
               location={pollutionData.selectedLocation}

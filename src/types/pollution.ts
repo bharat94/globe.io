@@ -2,6 +2,86 @@
  * Pollution/Air Quality types
  */
 
+// Available pollutant metrics
+export type PollutantType = 'aqi' | 'pm2_5' | 'pm10' | 'ozone' | 'nitrogen_dioxide' | 'carbon_monoxide' | 'sulphur_dioxide' | 'uv_index';
+
+export interface PollutantConfig {
+  name: string;
+  shortName: string;
+  unit: string;
+  description: string;
+  // Thresholds for color scale [good, moderate, unhealthy, very_unhealthy, hazardous]
+  thresholds: number[];
+  colors: string[];
+}
+
+export const POLLUTANT_CONFIG: Record<PollutantType, PollutantConfig> = {
+  aqi: {
+    name: 'Air Quality Index',
+    shortName: 'AQI',
+    unit: '',
+    description: 'Overall air quality score (0-500)',
+    thresholds: [50, 100, 150, 200, 300],
+    colors: ['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#8F3F97', '#7E0023']
+  },
+  pm2_5: {
+    name: 'PM2.5',
+    shortName: 'PM2.5',
+    unit: 'μg/m³',
+    description: 'Fine particulate matter (<2.5μm)',
+    thresholds: [12, 35, 55, 150, 250],
+    colors: ['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#8F3F97', '#7E0023']
+  },
+  pm10: {
+    name: 'PM10',
+    shortName: 'PM10',
+    unit: 'μg/m³',
+    description: 'Coarse particulate matter (<10μm)',
+    thresholds: [54, 154, 254, 354, 424],
+    colors: ['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#8F3F97', '#7E0023']
+  },
+  ozone: {
+    name: 'Ozone',
+    shortName: 'O₃',
+    unit: 'μg/m³',
+    description: 'Ground-level ozone',
+    thresholds: [60, 120, 180, 240, 300],
+    colors: ['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#8F3F97', '#7E0023']
+  },
+  nitrogen_dioxide: {
+    name: 'Nitrogen Dioxide',
+    shortName: 'NO₂',
+    unit: 'μg/m³',
+    description: 'Traffic and combustion pollutant',
+    thresholds: [40, 80, 180, 280, 400],
+    colors: ['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#8F3F97', '#7E0023']
+  },
+  carbon_monoxide: {
+    name: 'Carbon Monoxide',
+    shortName: 'CO',
+    unit: 'μg/m³',
+    description: 'Colorless, odorless gas',
+    thresholds: [4400, 9400, 12400, 15400, 30400],
+    colors: ['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#8F3F97', '#7E0023']
+  },
+  sulphur_dioxide: {
+    name: 'Sulphur Dioxide',
+    shortName: 'SO₂',
+    unit: 'μg/m³',
+    description: 'Industrial emissions pollutant',
+    thresholds: [40, 80, 380, 800, 1600],
+    colors: ['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#8F3F97', '#7E0023']
+  },
+  uv_index: {
+    name: 'UV Index',
+    shortName: 'UV',
+    unit: '',
+    description: 'Ultraviolet radiation intensity',
+    thresholds: [3, 6, 8, 11, 14],
+    colors: ['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#8F3F97', '#7E0023']
+  }
+};
+
 // AQI categories based on US EPA standards
 export type AQICategory = 'good' | 'moderate' | 'unhealthy_sensitive' | 'unhealthy' | 'very_unhealthy' | 'hazardous';
 
@@ -122,4 +202,28 @@ export function normalizeAQI(aqi: number): number {
   const clamped = Math.max(0, Math.min(500, aqi));
   // Log scale normalization for better visualization
   return Math.log(clamped + 1) / Math.log(501);
+}
+
+/**
+ * Get normalized weight (0-1) for any pollutant based on its thresholds
+ */
+export function normalizePollutant(value: number | null, pollutantType: PollutantType): number {
+  if (value === null || value === undefined) return 0;
+
+  const config = POLLUTANT_CONFIG[pollutantType];
+  const maxThreshold = config.thresholds[config.thresholds.length - 1];
+
+  // Clamp to valid range
+  const clamped = Math.max(0, Math.min(value, maxThreshold * 1.5));
+
+  // Normalize to 0-1 using log scale for better distribution
+  return Math.log(clamped + 1) / Math.log(maxThreshold * 1.5 + 1);
+}
+
+/**
+ * Get value from pollution data point for a given pollutant type
+ */
+export function getPollutantValue(point: PollutionDataPoint, pollutantType: PollutantType): number | null {
+  if (pollutantType === 'aqi') return point.aqi;
+  return point.pollutants[pollutantType as keyof typeof point.pollutants] as number | null;
 }

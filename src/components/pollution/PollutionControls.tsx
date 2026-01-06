@@ -1,5 +1,6 @@
 import React from 'react';
-import type { PollutionMetadata } from '../../types/pollution';
+import type { PollutionMetadata, PollutantType } from '../../types/pollution';
+import { POLLUTANT_CONFIG } from '../../types/pollution';
 
 interface FetchProgress {
   isLoading: boolean;
@@ -14,14 +15,20 @@ interface PollutionControlsProps {
   lastUpdated: Date | null;
   onRefresh: () => void;
   fetchProgress: FetchProgress;
+  selectedPollutant: PollutantType;
+  onPollutantChange: (pollutant: PollutantType) => void;
 }
+
+const POLLUTANT_OPTIONS: PollutantType[] = ['pm2_5', 'pm10', 'ozone', 'nitrogen_dioxide', 'carbon_monoxide', 'aqi', 'uv_index'];
 
 const PollutionControls: React.FC<PollutionControlsProps> = ({
   metadata,
   loading,
   lastUpdated,
   onRefresh,
-  fetchProgress
+  fetchProgress,
+  selectedPollutant,
+  onPollutantChange
 }) => {
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
@@ -97,16 +104,37 @@ const PollutionControls: React.FC<PollutionControlsProps> = ({
         </div>
       )}
 
-      {/* Data points count */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '18px' }}>🏭</span>
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: '600' }}>
-            {metadata?.totalPoints || 0} monitoring points
-          </div>
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
-            {metadata?.resolution || 10}° grid resolution
-          </div>
+      {/* Pollutant Selector */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          Metric
+        </span>
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {POLLUTANT_OPTIONS.map((pollutant) => {
+            const config = POLLUTANT_CONFIG[pollutant];
+            const isSelected = selectedPollutant === pollutant;
+            return (
+              <button
+                key={pollutant}
+                onClick={() => onPollutantChange(pollutant)}
+                style={{
+                  background: isSelected ? 'rgba(79, 195, 247, 0.3)' : 'transparent',
+                  border: isSelected ? '1px solid #4FC3F7' : '1px solid rgba(255,255,255,0.2)',
+                  color: isSelected ? '#4FC3F7' : 'rgba(255,255,255,0.7)',
+                  padding: '6px 10px',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: isSelected ? '600' : '400',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap'
+                }}
+                title={config.description}
+              >
+                {config.shortName}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -117,16 +145,13 @@ const PollutionControls: React.FC<PollutionControlsProps> = ({
         background: 'rgba(255, 255, 255, 0.2)'
       }} />
 
-      {/* Last updated */}
-      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
-        {lastUpdated ? (
-          <>
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Updated: </span>
-            {formatTime(lastUpdated)}
-          </>
-        ) : (
-          'Loading...'
-        )}
+      {/* Data points count */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div>
+          <div style={{ fontSize: '12px', fontWeight: '500' }}>
+            {metadata?.totalPoints || 0} points
+          </div>
+        </div>
       </div>
 
       {/* Divider */}

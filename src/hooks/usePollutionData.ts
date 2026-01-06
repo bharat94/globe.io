@@ -6,8 +6,10 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type {
   PollutionDataPoint,
   PollutionLocationData,
-  PollutionMetadata
+  PollutionMetadata,
+  PollutantType
 } from '../types/pollution';
+import { normalizePollutant, getPollutantValue, POLLUTANT_CONFIG } from '../types/pollution';
 
 const API_BASE = 'http://localhost:3001/api/pollution';
 
@@ -18,9 +20,15 @@ interface FetchProgress {
   total: number;
 }
 
+interface HeatmapPoint {
+  lat: number;
+  lng: number;
+  weight: number;
+}
+
 interface UsePollutionDataReturn {
   pollutionData: PollutionDataPoint[];
-  heatmapData: PollutionDataPoint[];
+  heatmapData: HeatmapPoint[];
   metadata: PollutionMetadata | null;
   loading: boolean;
   error: string | null;
@@ -30,6 +38,9 @@ interface UsePollutionDataReturn {
   refresh: () => void;
   lastUpdated: Date | null;
   fetchProgress: FetchProgress;
+  selectedPollutant: PollutantType;
+  setSelectedPollutant: (pollutant: PollutantType) => void;
+  pollutantConfig: typeof POLLUTANT_CONFIG;
 }
 
 export const usePollutionData = (): UsePollutionDataReturn => {
@@ -39,6 +50,7 @@ export const usePollutionData = (): UsePollutionDataReturn => {
   const [error, setError] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<PollutionLocationData | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [selectedPollutant, setSelectedPollutant] = useState<PollutantType>('pm2_5');
   const [fetchProgress, setFetchProgress] = useState<FetchProgress>({
     isLoading: false,
     progress: 0,
@@ -155,15 +167,21 @@ export const usePollutionData = (): UsePollutionDataReturn => {
     fetchPollutionGrid();
   }, [fetchPollutionGrid]);
 
-  // Transform pollution data for heatmap visualization
+  // Transform pollution data for heatmap visualization based on selected pollutant
   // Using useMemo to prevent unnecessary re-renders
   const heatmapData = useMemo(() => {
-    return pollutionData.map(point => ({
-      lat: point.lat,
-      lng: point.lng,
-      weight: point.weight
-    }));
-  }, [pollutionData]);
+    return pollutionData
+      .map(point => {
+        const value = getPollutantValue(point, selectedPollutant);
+        const weight = normalizePollutant(value, selectedPollutant);
+        return {
+          lat: point.lat,
+          lng: point.lng,
+          weight
+        };
+      })
+      .filter(point => point.weight > 0); // Filter out null/zero values
+  }, [pollutionData, selectedPollutant]);
 
   return {
     pollutionData,
@@ -176,6 +194,9 @@ export const usePollutionData = (): UsePollutionDataReturn => {
     getLocationData,
     refresh,
     lastUpdated,
-    fetchProgress
+    fetchProgress,
+    selectedPollutant,
+    setSelectedPollutant,
+    pollutantConfig: POLLUTANT_CONFIG
   };
 };
