@@ -2,7 +2,7 @@
  * Pollution data hook
  * Fetches and manages air quality data from Open-Meteo API
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type {
   PollutionDataPoint,
   PollutionLocationData,
@@ -46,17 +46,33 @@ export const usePollutionData = (): UsePollutionDataReturn => {
     total: 0
   });
   const progressIntervalRef = useRef<number | null>(null);
+  const fetchIdRef = useRef<number>(0);
 
   // Poll for progress updates
-  const startProgressPolling = useCallback(() => {
-    if (progressIntervalRef.current) return;
+  const startProgressPolling = useCallback((fetchId: number) => {
+    // Clear any existing polling
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
 
     progressIntervalRef.current = window.setInterval(async () => {
+      // Stop if this fetch is no longer current
+      if (fetchIdRef.current !== fetchId) {
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        return;
+      }
+
       try {
         const response = await fetch(`${API_BASE}/progress`);
         if (response.ok) {
           const progress = await response.json();
-          setFetchProgress(progress);
+          // Only update if this fetch is still current
+          if (fetchIdRef.current === fetchId) {
+            setFetchProgress(progress);
+          }
 
           // Stop polling when complete
           if (!progress.isLoading && progressIntervalRef.current) {
@@ -79,12 +95,20 @@ export const usePollutionData = (): UsePollutionDataReturn => {
 
   // Fetch global pollution grid
   const fetchPollutionGrid = useCallback(async () => {
+    const currentFetchId = ++fetchIdRef.current;
     setLoading(true);
     setError(null);
-    startProgressPolling();
+    setFetchProgress({ isLoading: true, progress: 0, current: 0, total: 0 });
+    startProgressPolling(currentFetchId);
 
     try {
       const response = await fetch(`${API_BASE}/grid?resolution=15`);
+
+      // Check if this fetch is still current
+      if (fetchIdRef.current !== currentFetchId) {
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(`Failed to fetch pollution data: ${response.statusText}`);
       }
@@ -95,11 +119,15 @@ export const usePollutionData = (): UsePollutionDataReturn => {
       setLastUpdated(new Date());
       setFetchProgress({ isLoading: false, progress: 100, current: 0, total: 0 });
     } catch (err) {
-      console.error('Pollution fetch error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch pollution data');
+      if (fetchIdRef.current === currentFetchId) {
+        console.error('Pollution fetch error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch pollution data');
+      }
     } finally {
-      setLoading(false);
-      stopProgressPolling();
+      if (fetchIdRef.current === currentFetchId) {
+        setLoading(false);
+        stopProgressPolling();
+      }
     }
   }, [startProgressPolling, stopProgressPolling]);
 
@@ -128,11 +156,14 @@ export const usePollutionData = (): UsePollutionDataReturn => {
   }, [fetchPollutionGrid]);
 
   // Transform pollution data for heatmap visualization
-  // Using same format as weather heatmap
-  const heatmapData = pollutionData.map(point => ({
-    ...point,
-    // Weight is already normalized 0-1 in the backend
-  }));
+  // Using useMemo to prevent unnecessary re-renders
+  const heatmapData = useMemo(() => {
+    return pollutionData.map(point => ({
+      lat: point.lat,
+      lng: point.lng,
+      weight: point.weight
+    }));
+  }, [pollutionData]);
 
   return {
     pollutionData,
