@@ -8,6 +8,7 @@ const weatherRouter = require('./routes/weather');
 const populationRouter = require('./routes/population');
 const earthquakesRouter = require('./routes/earthquakes');
 const satellitesRouter = require('./routes/satellites');
+const pollutionRouter = require('./routes/pollution');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -40,6 +41,7 @@ app.use('/api/weather', weatherRouter);
 app.use('/api/population', populationRouter);
 app.use('/api/earthquakes', earthquakesRouter);
 app.use('/api/satellites', satellitesRouter);
+app.use('/api/pollution', pollutionRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

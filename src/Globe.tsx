@@ -18,10 +18,12 @@ import PopulationPanel from './components/population/PopulationPanel';
 import PopulationLegend from './components/population/PopulationLegend';
 import { EarthquakePanel, EarthquakeLegend, EarthquakeControls } from './components/earthquake';
 import { SatellitePanel, SatelliteLegend, SatelliteControls } from './components/satellite';
+import { PollutionPanel, PollutionLegend, PollutionControls } from './components/pollution';
 import { useWeatherData } from './hooks/useWeatherData';
 import { usePopulationData } from './hooks/usePopulationData';
 import { useEarthquakeData } from './hooks/useEarthquakeData';
 import { useSatelliteData } from './hooks/useSatelliteData';
+import { usePollutionData } from './hooks/usePollutionData';
 import { getTemperatureColor } from './utils/weatherUtils';
 
 // Convert country code to flag emoji
@@ -57,6 +59,9 @@ const GlobeComponent = () => {
 
   // Satellite data hook
   const satelliteData = useSatelliteData();
+
+  // Pollution data hook
+  const pollutionData = usePollutionData();
 
   const setViewportRef = useRef(weatherData.setViewport);
   setViewportRef.current = weatherData.setViewport;
@@ -136,6 +141,12 @@ const GlobeComponent = () => {
 
         if (currentView === 'satellites') {
           // Satellite data is handled by useSatelliteData hook
+          setLoading(false);
+          return;
+        }
+
+        if (currentView === 'pollution') {
+          // Pollution data is handled by usePollutionData hook
           setLoading(false);
           return;
         }
@@ -531,7 +542,11 @@ const GlobeComponent = () => {
         // Transition duration for points (caching helps keep transitions smooth without pointsMerge)
         pointsTransitionDuration={500}
         // Weather heatmap layer (only in weather view)
-        heatmapsData={currentView === 'weather' ? [weatherData.heatmapData] : []}
+        heatmapsData={
+          currentView === 'weather' ? [weatherData.heatmapData]
+          : currentView === 'pollution' ? [pollutionData.heatmapData]
+          : []
+        }
         heatmapPointLat="lat"
         heatmapPointLng="lng"
         heatmapPointWeight="weight"
@@ -605,7 +620,7 @@ const GlobeComponent = () => {
           }
         }}
         onZoom={handleZoom}
-        onGlobeClick={(coords: { lat: number; lng: number }) => {
+        onGlobeClick={async (coords: { lat: number; lng: number }) => {
           if (currentView === 'weather') {
             // Find nearest heatmap point
             const nearest = weatherData.heatmapData.reduce((closest: any, point: any) => {
@@ -619,6 +634,19 @@ const GlobeComponent = () => {
             }, null);
             if (nearest && nearest.dist < 15) {
               handleWeatherPointClick(nearest.point);
+            }
+          } else if (currentView === 'pollution') {
+            // Fetch detailed pollution data for clicked location
+            const locationData = await pollutionData.getLocationData(coords.lat, coords.lng);
+            if (locationData) {
+              pollutionData.setSelectedLocation(locationData);
+              // Animate camera to location
+              if (globeEl.current) {
+                globeEl.current.pointOfView(
+                  { lat: coords.lat, lng: coords.lng, altitude: 2 },
+                  1000
+                );
+              }
             }
           }
         }}
@@ -901,6 +929,26 @@ const GlobeComponent = () => {
         </>
       )}
 
+      {/* Pollution View UI */}
+      {currentView === 'pollution' && (
+        <>
+          <PollutionControls
+            metadata={pollutionData.metadata}
+            loading={pollutionData.loading}
+            lastUpdated={pollutionData.lastUpdated}
+            onRefresh={pollutionData.refresh}
+            fetchProgress={pollutionData.fetchProgress}
+          />
+          <PollutionLegend />
+          {pollutionData.selectedLocation && (
+            <PollutionPanel
+              location={pollutionData.selectedLocation}
+              onClose={() => pollutionData.setSelectedLocation(null)}
+            />
+          )}
+        </>
+      )}
+
       <div style={{
         position: 'absolute',
         bottom: '20px',
@@ -926,6 +974,8 @@ const GlobeComponent = () => {
             ? `${earthquakeData.loading ? 'Loading...' : `${earthquakeData.earthquakes.length} earthquakes`}`
             : currentView === 'satellites'
             ? `${satelliteData.loading ? 'Loading TLE data...' : `${satelliteData.positions.length} satellites tracked`}`
+            : currentView === 'pollution'
+            ? `${pollutionData.loading ? 'Loading air quality...' : `${pollutionData.pollutionData.length} monitoring points`}`
             : VIEWS.find(v => v.id === currentView)?.description}
         </p>
         <p style={{ margin: '5px 0', fontSize: '12px', opacity: 0.7 }}>
@@ -937,6 +987,8 @@ const GlobeComponent = () => {
             ? 'Click a marker for details • Auto-refreshes every 5 min'
             : currentView === 'satellites'
             ? 'Real-time orbital positions • Click for details'
+            : currentView === 'pollution'
+            ? 'Click globe for location details • Updates hourly'
             : 'Drag to rotate • Scroll to zoom'}
         </p>
       </div>

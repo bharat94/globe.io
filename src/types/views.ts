@@ -49,6 +49,6 @@ export const VIEWS: ViewConfig[] = [
     name: 'Pollution',
     icon: '🏭',
     description: 'Monitor air quality globally',
-    enabled: false // Coming soon - air quality index
+    enabled: true
   }
 ];
