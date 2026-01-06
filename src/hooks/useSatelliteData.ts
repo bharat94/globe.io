@@ -29,7 +29,7 @@ interface UseSatelliteDataReturn {
   selectedSatellite: Satellite | null;
   setSelectedSatellite: (sat: Satellite | null) => void;
   isAnimating: boolean;
-  setIsAnimating: (animating: boolean) => void;
+  toggleAnimation: () => void;
   timeMultiplier: number;
   setTimeMultiplier: (multiplier: number) => void;
   currentTime: Date;
@@ -116,6 +116,11 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
 
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(Date.now());
+
+  // Toggle animation
+  const toggleAnimation = useCallback(() => {
+    setIsAnimating(prev => !prev);
+  }, []);
 
   // Fetch satellite data
   const fetchSatellites = useCallback(async () => {
@@ -215,7 +220,7 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
     selectedSatellite,
     setSelectedSatellite,
     isAnimating,
-    setIsAnimating,
+    toggleAnimation,
     timeMultiplier,
     setTimeMultiplier,
     currentTime
