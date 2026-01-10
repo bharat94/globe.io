@@ -18,6 +18,13 @@ const API_BASE = 'http://localhost:3001/api/satellites';
 // Time step for animation (seconds per frame at 60fps)
 const TIME_STEP = 1000; // 1 second per frame = ~60x real-time
 
+// Orbit path point
+interface OrbitPoint {
+  lat: number;
+  lng: number;
+  alt: number;
+}
+
 interface UseSatelliteDataReturn {
   satellites: Satellite[];
   positions: SatellitePosition[];
@@ -33,6 +40,10 @@ interface UseSatelliteDataReturn {
   timeMultiplier: number;
   setTimeMultiplier: (multiplier: number) => void;
   currentTime: Date;
+  // Orbit visualization
+  selectedSatelliteOrbit: OrbitPoint[] | null;
+  showOrbit: boolean;
+  setShowOrbit: (show: boolean) => void;
 }
 
 // Get color for satellite category
@@ -114,8 +125,59 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
   const [timeMultiplier, setTimeMultiplier] = useState(60); // 60x real-time
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Orbit visualization state
+  const [selectedSatelliteOrbit, setSelectedSatelliteOrbit] = useState<OrbitPoint[] | null>(null);
+  const [showOrbit, setShowOrbit] = useState(true);
+
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(Date.now());
+
+  /**
+   * Calculate orbit path for a satellite
+   * @param sat - Satellite with TLE data
+   * @param startTime - Start time for orbit calculation
+   * @param durationMinutes - Duration to calculate (default 90 min for LEO)
+   * @param numPoints - Number of points in the path
+   */
+  const calculateOrbitPath = useCallback((
+    sat: Satellite,
+    startTime: Date,
+    durationMinutes: number = 90,
+    numPoints: number = 180
+  ): OrbitPoint[] => {
+    const points: OrbitPoint[] = [];
+    const stepMs = (durationMinutes * 60 * 1000) / numPoints;
+
+    try {
+      const satrec = satellite.twoline2satrec(sat.tle.line1, sat.tle.line2);
+
+      for (let i = 0; i <= numPoints; i++) {
+        const time = new Date(startTime.getTime() + i * stepMs);
+        const positionAndVelocity = satellite.propagate(satrec, time);
+
+        if (!positionAndVelocity.position || typeof positionAndVelocity.position === 'boolean') {
+          continue;
+        }
+
+        const gmst = satellite.gstime(time);
+        const positionGd = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
+
+        const lat = satellite.degreesLat(positionGd.latitude);
+        const lng = satellite.degreesLong(positionGd.longitude);
+        const altKm = positionGd.height;
+
+        points.push({
+          lat,
+          lng,
+          alt: altKm / EARTH_RADIUS_KM
+        });
+      }
+    } catch (error) {
+      console.error('Error calculating orbit path:', error);
+    }
+
+    return points;
+  }, []);
 
   // Toggle animation
   const toggleAnimation = useCallback(() => {
@@ -209,6 +271,16 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
     }
   }, [currentTime, filteredSatellites, calculateAllPositions]);
 
+  // Calculate orbit path when selected satellite changes
+  useEffect(() => {
+    if (selectedSatellite && showOrbit) {
+      const orbitPath = calculateOrbitPath(selectedSatellite, currentTime);
+      setSelectedSatelliteOrbit(orbitPath);
+    } else {
+      setSelectedSatelliteOrbit(null);
+    }
+  }, [selectedSatellite?.id, showOrbit, calculateOrbitPath]); // Only recalculate on satellite change, not on time change
+
   return {
     satellites,
     positions,
@@ -223,6 +295,10 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
     toggleAnimation,
     timeMultiplier,
     setTimeMultiplier,
-    currentTime
+    currentTime,
+    // Orbit visualization
+    selectedSatelliteOrbit,
+    showOrbit,
+    setShowOrbit
   };
 };

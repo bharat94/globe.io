@@ -2,6 +2,23 @@
  * Flight data types for real-time aircraft tracking
  */
 
+export interface FlightTrackPoint {
+  lat: number;
+  lng: number;
+  altitude: number;
+  time: number;
+  heading: number;
+  onGround: boolean;
+}
+
+export interface FlightTrack {
+  icao24: string;
+  callsign: string | null;
+  startTime?: number;
+  endTime?: number;
+  path: FlightTrackPoint[];
+}
+
 export interface Flight {
   icao24: string;           // Unique aircraft identifier (24-bit ICAO address)
   callsign: string | null;  // Flight number/callsign

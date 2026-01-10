@@ -775,6 +775,32 @@ const GlobeComponent = () => {
         heatmapBaseAltitude={0.005}
         heatmapTopAltitude={0.02}
         heatmapsTransitionDuration={1200}
+        // Flight trail and satellite orbit paths
+        pathsData={
+          currentView === 'flights' && flightData.showTrail && flightData.selectedFlightTrack?.path?.length
+            ? [{
+                coords: flightData.selectedFlightTrack.path.map(p => [p.lng, p.lat, p.altitude / 50000]),
+                color: flightData.selectedFlight?.color || '#FF9800'
+              }]
+            : currentView === 'satellites' && satelliteData.showOrbit && satelliteData.selectedSatelliteOrbit?.length
+            ? [{
+                coords: satelliteData.selectedSatelliteOrbit.map(p => [p.lng, p.lat, p.alt]),
+                color: satelliteData.selectedSatellite
+                  ? SATELLITE_CATEGORIES[satelliteData.selectedSatellite.category]?.color || '#9C27B0'
+                  : '#9C27B0'
+              }]
+            : []
+        }
+        pathPoints="coords"
+        pathPointLat={(p: number[]) => p[1]}
+        pathPointLng={(p: number[]) => p[0]}
+        pathPointAlt={(p: number[]) => p[2] || 0.01}
+        pathColor={(d: any) => d.color}
+        pathStroke={2}
+        pathDashLength={0.5}
+        pathDashGap={0.1}
+        pathDashAnimateTime={2000}
+        pathTransitionDuration={500}
         // Earthquake rings layer - seismic wave animation
         ringsData={currentView === 'earthquakes' ? earthquakeData.earthquakes : []}
         ringLat="lat"
@@ -1144,6 +1170,9 @@ const GlobeComponent = () => {
               satellite={satelliteData.selectedSatellite}
               position={satelliteData.positions.find(p => p.id === satelliteData.selectedSatellite?.id) || null}
               onClose={() => satelliteData.setSelectedSatellite(null)}
+              showOrbit={satelliteData.showOrbit}
+              onToggleOrbit={satelliteData.setShowOrbit}
+              orbitPointCount={satelliteData.selectedSatelliteOrbit?.length}
             />
           )}
         </>
@@ -1186,6 +1215,10 @@ const GlobeComponent = () => {
             <FlightPanel
               flight={flightData.selectedFlight}
               onClose={() => flightData.setSelectedFlight(null)}
+              showTrail={flightData.showTrail}
+              onToggleTrail={flightData.setShowTrail}
+              track={flightData.selectedFlightTrack}
+              trackLoading={flightData.trackLoading}
             />
           )}
         </>

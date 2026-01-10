@@ -6,12 +6,18 @@ interface SatellitePanelProps {
   satellite: Satellite;
   position: SatellitePosition | null;
   onClose: () => void;
+  showOrbit?: boolean;
+  onToggleOrbit?: (show: boolean) => void;
+  orbitPointCount?: number;
 }
 
 const SatellitePanel: React.FC<SatellitePanelProps> = ({
   satellite,
   position,
-  onClose
+  onClose,
+  showOrbit = true,
+  onToggleOrbit,
+  orbitPointCount
 }) => {
   const categoryConfig = SATELLITE_CATEGORIES[satellite.category];
 
@@ -184,6 +190,55 @@ const SatellitePanel: React.FC<SatellitePanelProps> = ({
           color: '#FFD700'
         }}>
           The ISS orbits Earth approximately every 90 minutes at about 28,000 km/h
+        </div>
+      )}
+
+      {/* Orbit Toggle */}
+      {onToggleOrbit && (
+        <div style={{
+          marginTop: '16px',
+          padding: '12px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: '8px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 500, color: 'white' }}>
+                Orbit Path
+              </div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+                {orbitPointCount ? `${orbitPointCount} points • 90 min` : 'Predicted trajectory'}
+              </div>
+            </div>
+            <button
+              onClick={() => onToggleOrbit(!showOrbit)}
+              style={{
+                background: showOrbit ? categoryConfig.color : 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '12px',
+                width: '44px',
+                height: '24px',
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'background 0.2s'
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: '2px',
+                left: showOrbit ? '22px' : '2px',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                background: 'white',
+                transition: 'left 0.2s'
+              }} />
+            </button>
+          </div>
         </div>
       )}
 

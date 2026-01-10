@@ -166,4 +166,99 @@ router.get('/:icao24', async (req, res) => {
   }
 });
 
+// Track cache (30 second TTL - tracks update less frequently)
+const trackCache = new Map();
+const TRACK_CACHE_TTL = 30 * 1000;
+
+/**
+ * GET /api/flights/:icao24/track
+ * Get flight track/trajectory for a specific aircraft
+ */
+router.get('/:icao24/track', async (req, res) => {
+  try {
+    const { icao24 } = req.params;
+    const now = Date.now();
+
+    // Check track cache
+    const cached = trackCache.get(icao24);
+    if (cached && (now - cached.timestamp) < TRACK_CACHE_TTL) {
+      console.log(`Flights: serving cached track for ${icao24}`);
+      return res.json(cached.data);
+    }
+
+    console.log(`Flights: fetching track for ${icao24}...`);
+
+    // Fetch track from OpenSky - use time=0 for current track
+    const trackUrl = `https://opensky-network.org/api/tracks/all?icao24=${icao24}&time=0`;
+
+    const response = await fetch(trackUrl, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        console.log('Flights: track rate limited, serving stale cache');
+        if (cached) {
+          return res.json(cached.data);
+        }
+        return res.json({ icao24, callsign: null, path: [] });
+      }
+      if (response.status === 404) {
+        // No track available for this aircraft
+        return res.json({ icao24, callsign: null, path: [] });
+      }
+      throw new Error(`OpenSky Track API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Transform track data
+    // OpenSky track path format: [[time, lat, lng, baro_altitude, heading, on_ground], ...]
+    const path = (data.path || []).map(point => ({
+      time: point[0],
+      lat: point[1],
+      lng: point[2],
+      altitude: point[3] || 0,
+      heading: point[4] || 0,
+      onGround: point[5] || false
+    }));
+
+    const result = {
+      icao24: data.icao24 || icao24,
+      callsign: data.callsign?.trim() || null,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      path
+    };
+
+    // Update cache
+    trackCache.set(icao24, {
+      data: result,
+      timestamp: now
+    });
+
+    // Clean old cache entries
+    for (const [key, value] of trackCache.entries()) {
+      if (now - value.timestamp > TRACK_CACHE_TTL * 10) {
+        trackCache.delete(key);
+      }
+    }
+
+    console.log(`Flights: fetched track for ${icao24} with ${path.length} waypoints`);
+    res.json(result);
+
+  } catch (error) {
+    console.error('Flight track error:', error.message);
+
+    // Return empty track on error
+    res.json({
+      icao24: req.params.icao24,
+      callsign: null,
+      path: []
+    });
+  }
+});
+
 module.exports = router;

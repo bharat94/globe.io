@@ -5,3 +5,51 @@
   padding: 0;
   overflow: hidden;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  /* Ensure globe takes full height minus bottom nav */
+  .App {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Make panels full-width bottom sheets on mobile */
+  .mobile-panel {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 70px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 50vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+
+  /* Adjust control bars for mobile */
+  .mobile-controls {
+    bottom: 80px !important;
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+  }
+
+  /* Hide legends on mobile to reduce clutter */
+  .mobile-hide {
+    display: none !important;
+  }
+
+  /* Touch-friendly button sizes */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Slightly smaller panels on tablet */
+  .tablet-panel {
+    width: 300px !important;
+  }
+}

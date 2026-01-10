@@ -1,4 +1,5 @@
 import type { ViewConfig, ViewType } from '../types/views';
+import { useIsMobile } from '../hooks/useMediaQuery';
 
 interface ViewSelectorProps {
   views: ViewConfig[];
@@ -7,11 +8,75 @@ interface ViewSelectorProps {
 }
 
 const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) => {
+  const isMobile = useIsMobile();
+
   // Show 4.5 items to hint there's more content
   // Each item: 60px height, gap: 16px
   // 4 full items + half of 5th = (4 * 60) + (4 * 16) + 30 = 240 + 64 + 30 = 334px
   const scrollableHeight = 334;
 
+  // Mobile layout: horizontal bar at bottom
+  if (isMobile) {
+    return (
+      <div style={{
+        position: 'absolute',
+        bottom: '0',
+        left: '0',
+        right: '0',
+        zIndex: 1000,
+        background: 'rgba(0, 0, 0, 0.9)',
+        backdropFilter: 'blur(10px)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        padding: '8px 0',
+        paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          maxWidth: '500px',
+          margin: '0 auto',
+        }}>
+          {views.filter(v => v.enabled).map((view) => (
+            <div
+              key={view.id}
+              onClick={() => onViewChange(view.id)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                background: currentView === view.id
+                  ? 'rgba(255, 255, 255, 0.15)'
+                  : 'transparent',
+                transition: 'all 0.2s',
+              }}
+            >
+              <div style={{
+                fontSize: '24px',
+                marginBottom: '2px',
+              }}>
+                {view.icon}
+              </div>
+              <div style={{
+                fontSize: '10px',
+                color: currentView === view.id
+                  ? 'white'
+                  : 'rgba(255, 255, 255, 0.6)',
+                fontWeight: currentView === view.id ? 600 : 400,
+              }}>
+                {view.name}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout: vertical sidebar
   return (
     <div style={{
       position: 'absolute',

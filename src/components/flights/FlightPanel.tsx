@@ -1,13 +1,24 @@
 import React from 'react';
-import type { Flight } from '../../types/flights';
+import type { Flight, FlightTrack } from '../../types/flights';
 import { formatCallsign, getAltitudeBand, metersToFeet, msToKnots } from '../../types/flights';
 
 interface FlightPanelProps {
   flight: Flight;
   onClose: () => void;
+  showTrail?: boolean;
+  onToggleTrail?: (show: boolean) => void;
+  track?: FlightTrack | null;
+  trackLoading?: boolean;
 }
 
-const FlightPanel: React.FC<FlightPanelProps> = ({ flight, onClose }) => {
+const FlightPanel: React.FC<FlightPanelProps> = ({
+  flight,
+  onClose,
+  showTrail = true,
+  onToggleTrail,
+  track,
+  trackLoading = false
+}) => {
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
     top: '20px',
@@ -157,12 +168,74 @@ const FlightPanel: React.FC<FlightPanelProps> = ({ flight, onClose }) => {
         </span>
       </div>
 
-      <div style={{ ...infoRowStyle, borderBottom: 'none' }}>
+      <div style={infoRowStyle}>
         <span style={labelStyle}>Position</span>
         <span style={valueStyle}>
           {flight.lat.toFixed(4)}°, {flight.lng.toFixed(4)}°
         </span>
       </div>
+
+      {/* Flight Trail Toggle */}
+      {onToggleTrail && (
+        <div style={{
+          marginTop: '16px',
+          padding: '12px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: '8px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: track?.path?.length ? '8px' : 0
+          }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 500, color: 'white' }}>
+                Flight Trail
+              </div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+                {trackLoading ? 'Loading...' : track?.path?.length ? `${track.path.length} waypoints` : 'No trail data'}
+              </div>
+            </div>
+            <button
+              onClick={() => onToggleTrail(!showTrail)}
+              style={{
+                background: showTrail ? flight.color : 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '12px',
+                width: '44px',
+                height: '24px',
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'background 0.2s'
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: '2px',
+                left: showTrail ? '22px' : '2px',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                background: 'white',
+                transition: 'left 0.2s'
+              }} />
+            </button>
+          </div>
+          {track?.path?.length && showTrail ? (
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.6)'
+            }}>
+              <span>From: {new Date((track.startTime || 0) * 1000).toLocaleTimeString()}</span>
+              <span>•</span>
+              <span>To: {new Date((track.endTime || 0) * 1000).toLocaleTimeString()}</span>
+            </div>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 };
