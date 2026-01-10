@@ -33,3 +33,6 @@ server/node_modules
 # Database (but keep seed script)
 data/db
 *.log
+
+# Gemini specific
+GEMINI.md
