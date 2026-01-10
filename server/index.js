@@ -9,6 +9,7 @@ const populationRouter = require('./routes/population');
 const earthquakesRouter = require('./routes/earthquakes');
 const satellitesRouter = require('./routes/satellites');
 const pollutionRouter = require('./routes/pollution');
+const flightsRouter = require('./routes/flights');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -42,6 +43,7 @@ app.use('/api/population', populationRouter);
 app.use('/api/earthquakes', earthquakesRouter);
 app.use('/api/satellites', satellitesRouter);
 app.use('/api/pollution', pollutionRouter);
+app.use('/api/flights', flightsRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

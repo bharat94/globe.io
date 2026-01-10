@@ -19,11 +19,17 @@ import PopulationLegend from './components/population/PopulationLegend';
 import { EarthquakePanel, EarthquakeLegend, EarthquakeControls } from './components/earthquake';
 import { SatellitePanel, SatelliteLegend, SatelliteControls } from './components/satellite';
 import { PollutionPanel, PollutionLegend, PollutionControls } from './components/pollution';
+import { FlightPanel, FlightControls, FlightLegend } from './components/flights';
+import { SearchBar } from './components/search';
 import { useWeatherData } from './hooks/useWeatherData';
+import { useSearch } from './hooks/useSearch';
+import type { SearchResult } from './utils/searchIndex';
 import { usePopulationData } from './hooks/usePopulationData';
 import { useEarthquakeData } from './hooks/useEarthquakeData';
 import { useSatelliteData } from './hooks/useSatelliteData';
 import { usePollutionData } from './hooks/usePollutionData';
+import { useFlightData } from './hooks/useFlightData';
+import { useUrlState } from './hooks/useUrlState';
 import { getTemperatureColor } from './utils/weatherUtils';
 
 // Convert country code to flag emoji
@@ -63,6 +69,15 @@ const GlobeComponent = () => {
   // Pollution data hook
   const pollutionData = usePollutionData();
 
+  // Flight data hook
+  const flightData = useFlightData();
+
+  // URL state hook
+  const { getStateFromUrl, updateUrl, hasUrlState, isInitialMount } = useUrlState();
+
+  // Search hook
+  const search = useSearch();
+
   const setViewportRef = useRef(weatherData.setViewport);
   setViewportRef.current = weatherData.setViewport;
 
@@ -73,18 +88,169 @@ const GlobeComponent = () => {
   };
 
   const [isDayMode, setIsDayMode] = useState(getDefaultTheme());
+  const [cameraPosition, setCameraPosition] = useState<{ lat: number; lng: number; altitude: number } | null>(null);
+  const urlUpdateTimeoutRef = useRef<number | null>(null);
 
-  // Handle zoom/rotation changes for progressive loading
-  const handleZoom = useCallback((pov: { lat: number; lng: number; altitude: number }) => {
-    if (currentView !== 'weather') return;
+  // Initialize from URL on mount
+  useEffect(() => {
+    if (isInitialMount.current && hasUrlState()) {
+      const urlState = getStateFromUrl();
 
-    console.log('onZoom fired - lat:', pov.lat.toFixed(2), 'lng:', pov.lng.toFixed(2), 'alt:', pov.altitude.toFixed(2));
+      // Set view from URL
+      if (urlState.view) {
+        setCurrentView(urlState.view);
+      }
 
-    setViewportRef.current({
-      lat: pov.lat,
-      lng: pov.lng,
-      altitude: pov.altitude
+      // Set view-specific params
+      if (urlState.year !== undefined) {
+        weatherData.setSelectedYear(urlState.year);
+        populationData.setSelectedYear(urlState.year);
+      }
+      if (urlState.month !== undefined) {
+        weatherData.setSelectedMonth(urlState.month);
+      }
+      if (urlState.mag !== undefined) {
+        earthquakeData.setMinMagnitude(urlState.mag);
+      }
+      if (urlState.days !== undefined) {
+        earthquakeData.setTimeRange(urlState.days);
+      }
+      if (urlState.pollutant) {
+        pollutionData.setSelectedPollutant(urlState.pollutant as any);
+      }
+
+      // Navigate to camera position after globe loads
+      if (urlState.lat !== undefined && urlState.lng !== undefined) {
+        const initCamera = () => {
+          if (globeEl.current) {
+            globeEl.current.pointOfView(
+              { lat: urlState.lat, lng: urlState.lng, altitude: urlState.alt || 2.5 },
+              0 // Instant navigation on initial load
+            );
+          }
+        };
+        // Small delay to ensure globe is ready
+        setTimeout(initCamera, 100);
+      }
+    }
+    isInitialMount.current = false;
+  }, []);
+
+  // Update URL when state changes (debounced)
+  useEffect(() => {
+    if (isInitialMount.current) return;
+
+    // Clear existing timeout
+    if (urlUpdateTimeoutRef.current) {
+      clearTimeout(urlUpdateTimeoutRef.current);
+    }
+
+    // Debounce URL updates to avoid too many history entries
+    urlUpdateTimeoutRef.current = window.setTimeout(() => {
+      const state: any = {
+        view: currentView
+      };
+
+      // Add camera position if available
+      if (cameraPosition) {
+        state.lat = cameraPosition.lat;
+        state.lng = cameraPosition.lng;
+        state.alt = cameraPosition.altitude;
+      }
+
+      // Add view-specific params
+      if (currentView === 'weather') {
+        state.year = weatherData.selectedYear;
+        state.month = weatherData.selectedMonth;
+      } else if (currentView === 'population') {
+        state.year = populationData.selectedYear;
+      } else if (currentView === 'earthquakes') {
+        state.mag = earthquakeData.minMagnitude;
+        state.days = earthquakeData.timeRange;
+      } else if (currentView === 'pollution') {
+        state.pollutant = pollutionData.selectedPollutant;
+      }
+
+      updateUrl(state);
+    }, 500);
+
+    return () => {
+      if (urlUpdateTimeoutRef.current) {
+        clearTimeout(urlUpdateTimeoutRef.current);
+      }
+    };
+  }, [
+    currentView,
+    cameraPosition,
+    weatherData.selectedYear,
+    weatherData.selectedMonth,
+    populationData.selectedYear,
+    earthquakeData.minMagnitude,
+    earthquakeData.timeRange,
+    pollutionData.selectedPollutant,
+    updateUrl
+  ]);
+
+  // Update search index when data changes
+  useEffect(() => {
+    search.updateData({
+      cities,
+      earthquakes: earthquakeData.earthquakes,
+      satellites: satelliteData.positions
     });
+  }, [cities, earthquakeData.earthquakes, satelliteData.positions, search.updateData]);
+
+  // Handle search result selection
+  const handleSearchSelect = useCallback((result: SearchResult) => {
+    // Navigate camera to result location
+    if (globeEl.current) {
+      globeEl.current.pointOfView(
+        { lat: result.lat, lng: result.lng, altitude: 1.5 },
+        1000
+      );
+    }
+
+    // Switch view and select entity based on result type
+    switch (result.type) {
+      case 'city':
+        setCurrentView('explorer');
+        setSelectedCity(result.data);
+        break;
+      case 'earthquake':
+        setCurrentView('earthquakes');
+        earthquakeData.setSelectedEarthquake(result.data);
+        break;
+      case 'satellite':
+        setCurrentView('satellites');
+        const satellite = satelliteData.satellites.find(s => s.id === result.data.id);
+        if (satellite) {
+          satelliteData.setSelectedSatellite(satellite);
+        }
+        break;
+      case 'country':
+        // Navigate to country location
+        break;
+    }
+
+    // Clear search
+    search.clearSearch();
+  }, [earthquakeData, satelliteData, search]);
+
+  // Handle zoom/rotation changes for progressive loading and URL state
+  const handleZoom = useCallback((pov: { lat: number; lng: number; altitude: number }) => {
+    // Update camera position for URL state
+    setCameraPosition(pov);
+
+    // Weather-specific viewport handling
+    if (currentView === 'weather') {
+      console.log('onZoom fired - lat:', pov.lat.toFixed(2), 'lng:', pov.lng.toFixed(2), 'alt:', pov.altitude.toFixed(2));
+
+      setViewportRef.current({
+        lat: pov.lat,
+        lng: pov.lng,
+        altitude: pov.altitude
+      });
+    }
   }, [currentView]);
 
   // Set initial viewport when entering weather view
@@ -147,6 +313,12 @@ const GlobeComponent = () => {
 
         if (currentView === 'pollution') {
           // Pollution data is handled by usePollutionData hook
+          setLoading(false);
+          return;
+        }
+
+        if (currentView === 'flights') {
+          // Flight data is handled by useFlightData hook
           setLoading(false);
           return;
         }
@@ -442,6 +614,18 @@ const GlobeComponent = () => {
         <span style={{ fontSize: '20px' }}>🌙</span>
       </div>
 
+      {/* Search Bar */}
+      <SearchBar
+        query={search.query}
+        onQueryChange={search.setQuery}
+        results={search.results}
+        selectedIndex={search.selectedIndex}
+        onSelectedIndexChange={search.setSelectedIndex}
+        onSelectResult={handleSearchSelect}
+        onClear={search.clearSearch}
+        isSearching={search.isSearching}
+      />
+
       <Globe
         ref={globeEl}
         globeImageUrl={isDayMode
@@ -458,23 +642,28 @@ const GlobeComponent = () => {
             ? populationData.populationData
             : currentView === 'earthquakes'
             ? earthquakeData.earthquakes
+            : currentView === 'flights'
+            ? flightData.flights
             : (currentView === 'explorer' || currentView === 'weather' ? cities : [])
         }
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={
+        pointAltitude={(d: any) =>
           currentView === 'population' ? 0.01
           : currentView === 'earthquakes' ? 0.01
+          : currentView === 'flights' ? 0.01 + (d.altitude / 500000) // Scale altitude
           : (currentView === 'weather' ? 0.05 : 0.02)
         }
         pointColor={(d: any) =>
           currentView === 'population' ? '#4FC3F7'
           : currentView === 'earthquakes' ? d.color
+          : currentView === 'flights' ? d.color
           : (d.color || '#ffffff')
         }
         pointRadius={(d: any) =>
           currentView === 'population' ? 0.4 + (d.weight * 2.5)
           : currentView === 'earthquakes' ? 0.15 + (d.weight * 0.8)
+          : currentView === 'flights' ? 0.15
           : 0.8
         }
         pointLabel={(d: any) =>
@@ -505,6 +694,24 @@ const GlobeComponent = () => {
               </div>
               ${d.isRecent ? '<div style="margin-top: 8px; padding: 4px 8px; background: rgba(255,68,68,0.3); border-radius: 4px; font-size: 11px; color: #ff6666; display: inline-block;">Recent Event</div>' : ''}
             </div>
+          ` : currentView === 'flights' ? `
+            <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${d.color}44;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: ${d.color}33; border: 2px solid ${d.color}; display: flex; align-items: center; justify-content: center;">
+                  <span style="font-size: 18px;">✈️</span>
+                </div>
+                <div>
+                  <div style="font-size: 16px; font-weight: 700; color: ${d.color};">${d.callsign || 'Unknown'}</div>
+                  <div style="font-size: 11px; color: rgba(255,255,255,0.5);">${d.originCountry}</div>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.8);">
+                <div>Alt: ${d.altitudeFt?.toLocaleString() || 0} ft</div>
+                <div>Speed: ${d.speedKnots || 0} kts</div>
+                <div>Heading: ${Math.round(d.heading || 0)}°</div>
+                <div>${d.onGround ? 'On Ground' : 'In Flight'}</div>
+              </div>
+            </div>
           ` : `
             <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
               <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
@@ -523,10 +730,12 @@ const GlobeComponent = () => {
             handlePopulationClick(point as PopulationDataPoint);
           } else if (currentView === 'earthquakes') {
             handleEarthquakeClick(point as Earthquake);
+          } else if (currentView === 'flights') {
+            flightData.setSelectedFlight(point);
           }
         }}
         onPointHover={(point: any) => {
-          if (currentView === 'explorer' || currentView === 'population' || currentView === 'earthquakes') {
+          if (currentView === 'explorer' || currentView === 'population' || currentView === 'earthquakes' || currentView === 'flights') {
             if (currentView === 'explorer') {
               setHoverCity(point as City | null);
             }
@@ -951,6 +1160,26 @@ const GlobeComponent = () => {
         </>
       )}
 
+      {/* Flights View UI */}
+      {currentView === 'flights' && (
+        <>
+          <FlightControls
+            metadata={flightData.metadata}
+            loading={flightData.loading}
+            onRefresh={flightData.refresh}
+            isAutoRefreshing={flightData.isAutoRefreshing}
+            onToggleAutoRefresh={flightData.setAutoRefresh}
+          />
+          <FlightLegend />
+          {flightData.selectedFlight && (
+            <FlightPanel
+              flight={flightData.selectedFlight}
+              onClose={() => flightData.setSelectedFlight(null)}
+            />
+          )}
+        </>
+      )}
+
       <div style={{
         position: 'absolute',
         bottom: '20px',
@@ -978,6 +1207,8 @@ const GlobeComponent = () => {
             ? `${satelliteData.loading ? 'Loading TLE data...' : `${satelliteData.positions.length} satellites tracked`}`
             : currentView === 'pollution'
             ? `${pollutionData.loading ? 'Loading air quality...' : `${pollutionData.pollutionData.length} monitoring points`}`
+            : currentView === 'flights'
+            ? `${flightData.loading ? 'Loading flights...' : `${flightData.flights.length.toLocaleString()} aircraft tracked`}`
             : VIEWS.find(v => v.id === currentView)?.description}
         </p>
         <p style={{ margin: '5px 0', fontSize: '12px', opacity: 0.7 }}>
@@ -991,6 +1222,8 @@ const GlobeComponent = () => {
             ? 'Real-time orbital positions • Click for details'
             : currentView === 'pollution'
             ? 'Click globe for location details • Updates hourly'
+            : currentView === 'flights'
+            ? 'Live aircraft positions • Auto-refreshes every 15s'
             : 'Drag to rotate • Scroll to zoom'}
         </p>
       </div>
