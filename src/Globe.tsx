@@ -210,11 +210,25 @@ const GlobeComponent = () => {
       );
     }
 
-    // Switch view and select entity based on result type
+    // Handle based on result type and current view
     switch (result.type) {
       case 'city':
-        setCurrentView('explorer');
-        setSelectedCity(result.data);
+      case 'country':
+        // For city-based views, select the entity in that view
+        if (currentView === 'explorer') {
+          setSelectedCity(result.data);
+        } else if (currentView === 'population') {
+          // Find matching country in population data
+          const countryName = result.type === 'city' ? result.data.country : result.data.name;
+          const countryData = populationData.populationData.find(
+            (p: PopulationDataPoint) => p.name === countryName
+          );
+          if (countryData) {
+            setSelectedCountry(countryData);
+          }
+        }
+        // For non-city views (weather, earthquakes, satellites, pollution, flights),
+        // just navigate to the location - camera is already moved above
         break;
       case 'earthquake':
         setCurrentView('earthquakes');
@@ -227,14 +241,11 @@ const GlobeComponent = () => {
           satelliteData.setSelectedSatellite(satellite);
         }
         break;
-      case 'country':
-        // Navigate to country location
-        break;
     }
 
     // Clear search
     search.clearSearch();
-  }, [earthquakeData, satelliteData, search]);
+  }, [currentView, earthquakeData, satelliteData, populationData.populationData, search]);
 
   // Handle zoom/rotation changes for progressive loading and URL state
   const handleZoom = useCallback((pov: { lat: number; lng: number; altitude: number }) => {
