@@ -2,7 +2,7 @@
  * Aurora Data Hook
  * Fetches and manages aurora forecast and space weather data
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { AuroraPoint, SpaceWeather, AuroraMetadata } from '../types/aurora';
 
 const API_BASE = 'http://localhost:3001/api/aurora';
@@ -136,12 +136,15 @@ export const useAuroraData = (): UseAuroraDataReturn => {
     fetchAuroraData();
   }, [fetchAuroraData]);
 
-  // Convert aurora points to heatmap format
-  const heatmapData = auroraPoints.map(point => ({
-    lat: point.lat,
-    lng: point.lng,
-    weight: point.probability / 100 // Normalize to 0-1
-  }));
+  // Convert aurora points to heatmap format (memoized to prevent unnecessary re-renders)
+  const heatmapData = useMemo(() =>
+    auroraPoints.map(point => ({
+      lat: point.lat,
+      lng: point.lng,
+      weight: point.probability / 100 // Normalize to 0-1
+    })),
+    [auroraPoints]
+  );
 
   return {
     auroraPoints,

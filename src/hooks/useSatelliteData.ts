@@ -131,6 +131,7 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
 
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(Date.now());
+  const filteredSatellitesRef = useRef<Satellite[]>([]);
 
   /**
    * Calculate orbit path for a satellite
@@ -213,24 +214,25 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
 
   // Filter satellites by selected categories
   const filteredSatellites = useMemo(() => {
-    return satellites.filter(sat => selectedCategories.includes(sat.category));
+    const filtered = satellites.filter(sat => selectedCategories.includes(sat.category));
+    // Update ref for use in effects that shouldn't re-run on filter changes
+    filteredSatellitesRef.current = filtered;
+    return filtered;
   }, [satellites, selectedCategories]);
 
-  // Calculate positions for all filtered satellites
-  const calculateAllPositions = useCallback((time: Date) => {
+  // Calculate positions for satellites (uses ref to avoid dependency issues)
+  const calculatePositionsForSatellites = useCallback((sats: Satellite[], time: Date) => {
     const newPositions: SatellitePosition[] = [];
-
-    for (const sat of filteredSatellites) {
+    for (const sat of sats) {
       const pos = calculatePosition(sat, time);
       if (pos) {
         newPositions.push(pos);
       }
     }
-
     return newPositions;
-  }, [filteredSatellites]);
+  }, []);
 
-  // Animation loop
+  // Animation loop - combines time and position updates to avoid cascading renders
   useEffect(() => {
     if (!isAnimating || filteredSatellites.length === 0) {
       if (animationRef.current) {
@@ -240,16 +242,24 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
       return;
     }
 
+    let currentSimTime = new Date();
+
     const animate = () => {
       const now = Date.now();
       const deltaMs = now - lastTimeRef.current;
       lastTimeRef.current = now;
 
       // Update simulation time
-      setCurrentTime(prev => {
-        const newTime = new Date(prev.getTime() + deltaMs * timeMultiplier);
-        return newTime;
-      });
+      currentSimTime = new Date(currentSimTime.getTime() + deltaMs * timeMultiplier);
+
+      // Calculate positions at new time
+      const sats = filteredSatellitesRef.current;
+      if (sats.length > 0) {
+        const newPositions = calculatePositionsForSatellites(sats, currentSimTime);
+        // Batch state updates together
+        setCurrentTime(currentSimTime);
+        setPositions(newPositions);
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -261,15 +271,17 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isAnimating, filteredSatellites.length, timeMultiplier]);
+  }, [isAnimating, filteredSatellites.length, timeMultiplier, calculatePositionsForSatellites]);
 
-  // Update positions when time changes
+  // Update positions when animation is off but time/satellites change
   useEffect(() => {
-    if (filteredSatellites.length > 0) {
-      const newPositions = calculateAllPositions(currentTime);
+    if (isAnimating) return; // Animation handles updates when running
+    const sats = filteredSatellitesRef.current;
+    if (sats.length > 0) {
+      const newPositions = calculatePositionsForSatellites(sats, currentTime);
       setPositions(newPositions);
     }
-  }, [currentTime, filteredSatellites, calculateAllPositions]);
+  }, [currentTime, isAnimating, calculatePositionsForSatellites]);
 
   // Calculate orbit path when selected satellite changes
   useEffect(() => {

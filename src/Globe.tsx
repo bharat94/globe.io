@@ -197,13 +197,23 @@ const GlobeComponent = () => {
   ]);
 
   // Update search index when data changes
+  // Note: Using static satellite positions (calculated once) instead of animated positions to avoid 60fps updates
+  const staticSatellitePositions = useMemo(() => {
+    if (satelliteData.satellites.length === 0) return [];
+    const now = new Date();
+    return satelliteData.satellites.map(sat => {
+      const pos = satelliteData.positions.find(p => p.id === sat.id);
+      return pos || { id: sat.id, name: sat.name, category: sat.category, lat: 0, lng: 0, alt: 0, velocity: 0, color: '' };
+    }).filter(p => p.lat !== 0 || p.lng !== 0);
+  }, [satelliteData.satellites]); // Only recalculate when satellites list changes, not on every position update
+
   useEffect(() => {
     search.updateData({
       cities,
       earthquakes: earthquakeData.earthquakes,
-      satellites: satelliteData.positions
+      satellites: staticSatellitePositions
     });
-  }, [cities, earthquakeData.earthquakes, satelliteData.positions, search.updateData]);
+  }, [cities, earthquakeData.earthquakes, staticSatellitePositions, search.updateData]);
 
   // Handle search result selection
   const handleSearchSelect = useCallback((result: SearchResult) => {

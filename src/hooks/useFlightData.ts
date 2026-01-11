@@ -30,13 +30,18 @@ export const useFlightData = (): UseFlightDataReturn => {
   const [metadata, setMetadata] = useState<FlightMetadata | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
+  const [selectedFlightId, setSelectedFlightId] = useState<string | null>(null);
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(true);
 
   // Track/trail state
   const [selectedFlightTrack, setSelectedFlightTrack] = useState<FlightTrack | null>(null);
   const [trackLoading, setTrackLoading] = useState(false);
   const [showTrail, setShowTrail] = useState(true);
+
+  // Derive selectedFlight from flights array - avoids infinite loop
+  const selectedFlight = selectedFlightId
+    ? flights.find(f => f.icao24 === selectedFlightId) || null
+    : null;
 
   const intervalRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
@@ -107,15 +112,10 @@ export const useFlightData = (): UseFlightDataReturn => {
     setIsAutoRefreshing(enabled);
   }, []);
 
-  // Update selected flight when flights refresh
-  useEffect(() => {
-    if (selectedFlight) {
-      const updated = flights.find(f => f.icao24 === selectedFlight.icao24);
-      if (updated) {
-        setSelectedFlight(updated);
-      }
-    }
-  }, [flights, selectedFlight?.icao24]);
+  // Wrapper to set selected flight by ID
+  const setSelectedFlight = useCallback((flight: Flight | null) => {
+    setSelectedFlightId(flight?.icao24 || null);
+  }, []);
 
   // Fetch flight track when a flight is selected
   const fetchFlightTrack = useCallback(async (icao24: string) => {
@@ -147,23 +147,23 @@ export const useFlightData = (): UseFlightDataReturn => {
 
   // Auto-fetch track when selected flight changes
   useEffect(() => {
-    if (selectedFlight && showTrail) {
-      fetchFlightTrack(selectedFlight.icao24);
+    if (selectedFlightId && showTrail) {
+      fetchFlightTrack(selectedFlightId);
     } else {
       setSelectedFlightTrack(null);
     }
-  }, [selectedFlight?.icao24, showTrail, fetchFlightTrack]);
+  }, [selectedFlightId, showTrail, fetchFlightTrack]);
 
   // Periodically refresh track for selected flight
   useEffect(() => {
-    if (!selectedFlight || !showTrail) return;
+    if (!selectedFlightId || !showTrail) return;
 
     const trackRefreshInterval = window.setInterval(() => {
-      fetchFlightTrack(selectedFlight.icao24);
+      fetchFlightTrack(selectedFlightId);
     }, 30000); // Refresh track every 30 seconds
 
     return () => clearInterval(trackRefreshInterval);
-  }, [selectedFlight?.icao24, showTrail, fetchFlightTrack]);
+  }, [selectedFlightId, showTrail, fetchFlightTrack]);
 
   return {
     flights,
