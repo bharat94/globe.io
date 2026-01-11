@@ -20,6 +20,7 @@ import { EarthquakePanel, EarthquakeLegend, EarthquakeControls } from './compone
 import { SatellitePanel, SatelliteLegend, SatelliteControls } from './components/satellite';
 import { PollutionPanel, PollutionLegend, PollutionControls } from './components/pollution';
 import { FlightPanel, FlightControls, FlightLegend } from './components/flights';
+import { AuroraPanel, AuroraLegend, AuroraControls } from './components/aurora';
 import { SearchBar } from './components/search';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useSearch } from './hooks/useSearch';
@@ -28,6 +29,7 @@ import { usePopulationData } from './hooks/usePopulationData';
 import { useEarthquakeData } from './hooks/useEarthquakeData';
 import { useSatelliteData } from './hooks/useSatelliteData';
 import { usePollutionData } from './hooks/usePollutionData';
+import { useAuroraData } from './hooks/useAuroraData';
 import { useFlightData } from './hooks/useFlightData';
 import { useUrlState } from './hooks/useUrlState';
 import { getTemperatureColor } from './utils/weatherUtils';
@@ -71,6 +73,9 @@ const GlobeComponent = () => {
 
   // Flight data hook
   const flightData = useFlightData();
+
+  // Aurora data hook
+  const auroraData = useAuroraData();
 
   // URL state hook
   const { getStateFromUrl, updateUrl, hasUrlState, isInitialMount } = useUrlState();
@@ -761,10 +766,11 @@ const GlobeComponent = () => {
         atmosphereAltitude={0.15}
         // Transition duration for points (caching helps keep transitions smooth without pointsMerge)
         pointsTransitionDuration={500}
-        // Weather heatmap layer (only in weather view)
+        // Weather/Pollution/Aurora heatmap layers
         heatmapsData={
           currentView === 'weather' ? [weatherData.heatmapData]
           : currentView === 'pollution' ? [pollutionData.heatmapData]
+          : currentView === 'aurora' ? [auroraData.heatmapData]
           : []
         }
         heatmapPointLat="lat"
@@ -1219,6 +1225,26 @@ const GlobeComponent = () => {
               onToggleTrail={flightData.setShowTrail}
               track={flightData.selectedFlightTrack}
               trackLoading={flightData.trackLoading}
+            />
+          )}
+        </>
+      )}
+
+      {/* Aurora View UI */}
+      {currentView === 'aurora' && (
+        <>
+          <AuroraControls
+            metadata={auroraData.metadata}
+            loading={auroraData.loading}
+            lastUpdated={auroraData.lastUpdated}
+            onRefresh={auroraData.refresh}
+          />
+          <AuroraLegend metadata={auroraData.metadata} />
+          {auroraData.spaceWeather && auroraData.metadata && (
+            <AuroraPanel
+              spaceWeather={auroraData.spaceWeather}
+              metadata={auroraData.metadata}
+              onClose={() => {}} // Aurora panel stays open as info panel
             />
           )}
         </>
