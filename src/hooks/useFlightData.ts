@@ -2,27 +2,39 @@
  * Flight Data Hook
  * Fetches and manages real-time flight tracking data
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Flight, FlightMetadata, FlightTrack } from '../types/flights';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { Flight, FlightMetadata, FlightTrack, FlightCategory } from '../types/flights';
+import { categorizeFlightByCallsign, getCategoryColor } from '../types/flights';
 
 const API_BASE = 'http://localhost:3001/api/flights';
 const REFRESH_INTERVAL = 15000; // 15 seconds
 
 interface UseFlightDataReturn {
+  // Raw data
   flights: Flight[];
   metadata: FlightMetadata | null;
   loading: boolean;
   error: string | null;
-  selectedFlight: Flight | null;
-  setSelectedFlight: (flight: Flight | null) => void;
   refresh: () => void;
   isAutoRefreshing: boolean;
   setAutoRefresh: (enabled: boolean) => void;
+  // Selection
+  selectedFlight: Flight | null;
+  setSelectedFlight: (flight: Flight | null) => void;
   // Track/trail related
   selectedFlightTrack: FlightTrack | null;
   trackLoading: boolean;
   showTrail: boolean;
   setShowTrail: (show: boolean) => void;
+  // Category filtering
+  selectedCategories: FlightCategory[];
+  setSelectedCategories: React.Dispatch<React.SetStateAction<FlightCategory[]>>;
+  categoryCounts: Record<FlightCategory, number>;
+  filteredFlights: Flight[];
+  // Search
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  searchResults: Flight[];
 }
 
 export const useFlightData = (): UseFlightDataReturn => {
@@ -38,9 +50,56 @@ export const useFlightData = (): UseFlightDataReturn => {
   const [trackLoading, setTrackLoading] = useState(false);
   const [showTrail, setShowTrail] = useState(true);
 
-  // Derive selectedFlight from flights array - avoids infinite loop
+  // Category filtering state
+  const [selectedCategories, setSelectedCategories] = useState<FlightCategory[]>([
+    'commercial', 'cargo', 'private', 'military', 'other'
+  ]);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Categorize all flights when data changes
+  const categorizedFlights = useMemo(() => {
+    return flights.map(flight => ({
+      ...flight,
+      category: categorizeFlightByCallsign(flight.callsign),
+      // Update color to use category color instead of altitude color
+      color: getCategoryColor(categorizeFlightByCallsign(flight.callsign))
+    }));
+  }, [flights]);
+
+  // Count flights per category
+  const categoryCounts = useMemo(() => {
+    const counts: Record<FlightCategory, number> = {
+      commercial: 0,
+      cargo: 0,
+      private: 0,
+      military: 0,
+      other: 0
+    };
+    for (const flight of categorizedFlights) {
+      counts[flight.category]++;
+    }
+    return counts;
+  }, [categorizedFlights]);
+
+  // Filter flights by selected categories
+  const filteredFlights = useMemo(() => {
+    return categorizedFlights.filter(f => selectedCategories.includes(f.category));
+  }, [categorizedFlights, selectedCategories]);
+
+  // Search results (filter by callsign)
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toUpperCase();
+    return filteredFlights
+      .filter(f => f.callsign?.toUpperCase().includes(q))
+      .slice(0, 20); // Limit to 20 results
+  }, [filteredFlights, searchQuery]);
+
+  // Derive selectedFlight from categorized flights array - avoids infinite loop
   const selectedFlight = selectedFlightId
-    ? flights.find(f => f.icao24 === selectedFlightId) || null
+    ? categorizedFlights.find(f => f.icao24 === selectedFlightId) || null
     : null;
 
   const intervalRef = useRef<number | null>(null);
@@ -166,20 +225,31 @@ export const useFlightData = (): UseFlightDataReturn => {
   }, [selectedFlightId, showTrail, fetchFlightTrack]);
 
   return {
-    flights,
+    // Raw data
+    flights: categorizedFlights, // Return categorized flights as the main flights array
     metadata,
     loading,
     error,
-    selectedFlight,
-    setSelectedFlight,
     refresh,
     isAutoRefreshing,
     setAutoRefresh,
+    // Selection
+    selectedFlight,
+    setSelectedFlight,
     // Track/trail related
     selectedFlightTrack,
     trackLoading,
     showTrail,
-    setShowTrail
+    setShowTrail,
+    // Category filtering
+    selectedCategories,
+    setSelectedCategories,
+    categoryCounts,
+    filteredFlights,
+    // Search
+    searchQuery,
+    setSearchQuery,
+    searchResults
   };
 };
 

@@ -2,6 +2,164 @@
  * Flight data types for real-time aircraft tracking
  */
 
+// Flight category type for filtering
+export type FlightCategory = 'commercial' | 'cargo' | 'private' | 'military' | 'other';
+
+// Category display configuration
+export const FLIGHT_CATEGORIES: Record<FlightCategory, {
+  name: string;
+  color: string;
+  icon: string;
+  description: string;
+}> = {
+  commercial: {
+    name: 'Commercial',
+    color: '#4FC3F7',
+    icon: '✈️',
+    description: 'Passenger airlines'
+  },
+  cargo: {
+    name: 'Cargo',
+    color: '#FFA726',
+    icon: '📦',
+    description: 'Freight carriers'
+  },
+  private: {
+    name: 'Private',
+    color: '#AB47BC',
+    icon: '🛩️',
+    description: 'General aviation'
+  },
+  military: {
+    name: 'Military',
+    color: '#66BB6A',
+    icon: '🎖️',
+    description: 'Military aircraft'
+  },
+  other: {
+    name: 'Other',
+    color: '#78909C',
+    icon: '❓',
+    description: 'Unclassified'
+  }
+};
+
+// Major commercial airline ICAO prefixes (3-letter codes)
+export const COMMERCIAL_PREFIXES: string[] = [
+  // US Major Airlines
+  'AAL', 'UAL', 'DAL', 'SWA', 'ASA', 'JBU', 'NKS', 'FFT', 'HAL',
+  // US Regional
+  'SKW', 'RPA', 'ENY', 'ASH', 'JIA', 'CPZ', 'GJS', 'PDT',
+  // European Major
+  'BAW', 'DLH', 'AFR', 'KLM', 'IBE', 'AZA', 'SAS', 'FIN', 'TAP', 'AUA', 'SWR', 'BEL',
+  // European Low Cost
+  'EZY', 'RYR', 'WZZ', 'EJU', 'VLG', 'NOZ',
+  // Asian Major
+  'ANA', 'JAL', 'CPA', 'SIA', 'THA', 'MAS', 'KAL', 'AAR', 'EVA', 'CAL', 'CES', 'CSN', 'CCA', 'HVN',
+  'PAL', 'VJC', 'JSA', 'TGW', 'AIQ', 'AXM',
+  // Middle Eastern
+  'UAE', 'ETD', 'QTR', 'THY', 'MEA', 'GFA', 'KAC', 'SVA', 'RJA', 'MSR',
+  // Oceania
+  'QFA', 'ANZ', 'VOZ', 'JST', 'FJI',
+  // Latin America
+  'LAN', 'TAM', 'AVA', 'AMX', 'GLO', 'AEA', 'ARG', 'CMP', 'SKU',
+  // Canada
+  'ACA', 'WJA', 'TSC', 'JZA',
+  // African
+  'SAA', 'ETH', 'RAM', 'MSC', 'KQA'
+];
+
+// Cargo airline ICAO prefixes
+export const CARGO_PREFIXES: string[] = [
+  'FDX', 'UPS', 'ABX', 'GTI', 'CLX', 'CAO', 'SQC', 'BOX', 'GEC', 'ADB',
+  'KER', 'ICL', 'PAC', 'NCR', 'CKS', 'AHK', 'MPH', 'MAS', 'SRN'
+];
+
+// Military callsign patterns
+export const MILITARY_PATTERNS: RegExp[] = [
+  /^RCH\d/i,      // USAF REACH flights (heavy transports)
+  /^RRR\d/i,      // USAF tankers
+  /^DUKE\d/i,     // Various military
+  /^NAVY\d/i,     // US Navy
+  /^ARMY\d/i,     // US Army
+  /^EVAC\d/i,     // Medical evacuation
+  /^SAM\d/i,      // Special Air Mission
+  /^EXEC\d/i,     // Executive flights
+  /^TOPCAT/i,     // Military trainer
+  /^VIPER\d/i,    // Fighter jets
+  /^COBRA\d/i,    // Military
+  /^HAWK\d/i,     // Military
+  /^BOLT\d/i,     // Military
+  /^\d{5}$/,      // 5-digit numeric (common military)
+];
+
+// Private/General aviation patterns
+export const PRIVATE_PATTERNS: RegExp[] = [
+  /^N\d{1,5}[A-Z]{0,2}$/i,   // US N-numbers (N12345, N123AB)
+  /^G-[A-Z]{4}$/i,            // UK registrations
+  /^C-[FG][A-Z]{3}$/i,        // Canada registrations
+  /^VH-[A-Z]{3}$/i,           // Australia registrations
+  /^D-[A-Z]{4}$/i,            // Germany registrations
+  /^F-[A-Z]{4}$/i,            // France registrations
+  /^I-[A-Z]{4}$/i,            // Italy registrations
+  /^EC-[A-Z]{3}$/i,           // Spain registrations
+  /^PH-[A-Z]{3}$/i,           // Netherlands registrations
+  /^HB-[A-Z]{3}$/i,           // Switzerland registrations
+  /^OE-[A-Z]{3}$/i,           // Austria registrations
+  /^SE-[A-Z]{3}$/i,           // Sweden registrations
+  /^LN-[A-Z]{3}$/i,           // Norway registrations
+  /^OH-[A-Z]{3}$/i,           // Finland registrations
+  /^OO-[A-Z]{3}$/i,           // Belgium registrations
+  /^CS-[A-Z]{3}$/i,           // Portugal registrations
+  /^ZK-[A-Z]{3}$/i,           // New Zealand registrations
+  /^JA\d{4}$/i,               // Japan registrations
+  /^HL\d{4}$/i,               // Korea registrations
+  /^B-\d{4}$/i,               // Taiwan/China registrations
+  /^9V-[A-Z]{3}$/i,           // Singapore registrations
+  /^VT-[A-Z]{3}$/i,           // India registrations
+  /^A6-[A-Z]{3}$/i,           // UAE registrations
+  /^A7-[A-Z]{3}$/i,           // Qatar registrations
+];
+
+/**
+ * Categorize a flight based on its callsign
+ */
+export function categorizeFlightByCallsign(callsign: string | null): FlightCategory {
+  if (!callsign) return 'other';
+
+  const trimmed = callsign.trim().toUpperCase();
+  if (!trimmed) return 'other';
+
+  // Check military patterns first (they can have varied formats)
+  for (const pattern of MILITARY_PATTERNS) {
+    if (pattern.test(trimmed)) return 'military';
+  }
+
+  // Extract 3-letter prefix for airline matching
+  const prefix = trimmed.slice(0, 3);
+
+  // Check commercial airlines
+  if (COMMERCIAL_PREFIXES.includes(prefix)) return 'commercial';
+
+  // Check cargo carriers
+  if (CARGO_PREFIXES.includes(prefix)) return 'cargo';
+
+  // Check private/GA patterns
+  for (const pattern of PRIVATE_PATTERNS) {
+    if (pattern.test(trimmed)) return 'private';
+  }
+
+  // Default to other
+  return 'other';
+}
+
+/**
+ * Get color for a flight category
+ */
+export function getCategoryColor(category: FlightCategory): string {
+  return FLIGHT_CATEGORIES[category]?.color || FLIGHT_CATEGORIES.other.color;
+}
+
 export interface FlightTrackPoint {
   lat: number;
   lng: number;
@@ -36,6 +194,7 @@ export interface Flight {
   color: string;            // Color based on altitude
   altitudeFt: number;       // Altitude in feet for display
   speedKnots: number;       // Speed in knots for display
+  category: FlightCategory; // Flight category (commercial, cargo, private, military, other)
 }
 
 export interface FlightMetadata {

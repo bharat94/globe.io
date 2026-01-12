@@ -8,6 +8,8 @@ import type { PopulationDataPoint } from './types/population';
 import type { Earthquake } from './types/earthquake';
 import type { SatellitePosition, SatelliteCategory } from './types/satellite';
 import { SATELLITE_CATEGORIES, EARTH_RADIUS_KM } from './types/satellite';
+import type { Flight, FlightCategory } from './types/flights';
+import { FLIGHT_CATEGORIES } from './types/flights';
 import { VIEWS } from './types/views';
 import ViewSelector from './components/ViewSelector';
 import TimeSlider from './components/weather/TimeSlider';
@@ -518,6 +520,64 @@ const GlobeComponent = () => {
     return group;
   }, []);
 
+  // Create 3D airplane object for flights
+  const createAirplaneObject = useCallback((flight: Flight) => {
+    const group = new THREE.Group();
+    const categoryConfig = FLIGHT_CATEGORIES[flight.category];
+    const color = categoryConfig?.color || flight.color || '#ffffff';
+
+    // Determine if this flight should be dimmed (when another flight is selected)
+    const isDimmed = flightData.selectedFlight &&
+                     flightData.selectedFlight.icao24 !== flight.icao24;
+    const opacity = isDimmed ? 0.15 : 1;
+
+    // Create airplane shape - a cone pointing in direction of travel
+    const coneGeometry = new THREE.ConeGeometry(0.4, 1.2, 4);
+    coneGeometry.rotateX(Math.PI / 2); // Point forward (along Z axis)
+
+    const coneMaterial = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: opacity
+    });
+
+    const cone = new THREE.Mesh(coneGeometry, coneMaterial);
+
+    // Rotate to match heading (heading is clockwise from north)
+    // Convert to radians and negate for counter-clockwise rotation
+    cone.rotation.z = -((flight.heading || 0) * Math.PI / 180);
+    group.add(cone);
+
+    // Add glow effect
+    const glowGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: isDimmed ? 0.05 : 0.2,
+      side: THREE.BackSide
+    });
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    group.add(glow);
+
+    return group;
+  }, [flightData.selectedFlight]);
+
+  // Handle flight click from custom layer
+  const handleFlightClick = useCallback((flight: Flight) => {
+    flightData.setSelectedFlight(flight);
+  }, [flightData]);
+
+  // Toggle flight category
+  const handleToggleFlightCategory = useCallback((category: FlightCategory) => {
+    flightData.setSelectedCategories((prev: FlightCategory[]) => {
+      if (prev.includes(category)) {
+        return prev.filter((c: FlightCategory) => c !== category);
+      } else {
+        return [...prev, category];
+      }
+    });
+  }, [flightData]);
+
   // Handle satellite click
   const handleSatelliteClick = useCallback((sat: SatellitePosition) => {
     const satellite = satelliteData.satellites.find(s => s.id === sat.id);
@@ -528,9 +588,9 @@ const GlobeComponent = () => {
 
   // Toggle satellite category
   const handleToggleSatelliteCategory = useCallback((category: SatelliteCategory) => {
-    satelliteData.setSelectedCategories(prev => {
+    satelliteData.setSelectedCategories((prev: SatelliteCategory[]) => {
       if (prev.includes(category)) {
-        return prev.filter(c => c !== category);
+        return prev.filter((c: SatelliteCategory) => c !== category);
       } else {
         return [...prev, category];
       }
@@ -662,14 +722,12 @@ const GlobeComponent = () => {
           ? "//unpkg.com/three-globe/example/img/night-sky.png"
           : "//unpkg.com/three-globe/example/img/night-sky.png"
         }
-        // Show different point data based on view
+        // Show different point data based on view (flights use custom layer instead)
         pointsData={
           currentView === 'population'
             ? populationData.populationData
             : currentView === 'earthquakes'
             ? earthquakeData.earthquakes
-            : currentView === 'flights'
-            ? flightData.flights
             : (currentView === 'explorer' || currentView === 'weather' ? cities : [])
         }
         pointLat="lat"
@@ -677,19 +735,16 @@ const GlobeComponent = () => {
         pointAltitude={(d: any) =>
           currentView === 'population' ? 0.01
           : currentView === 'earthquakes' ? 0.01
-          : currentView === 'flights' ? 0.01 + (d.altitude / 500000) // Scale altitude
           : (currentView === 'weather' ? 0.05 : 0.02)
         }
         pointColor={(d: any) =>
           currentView === 'population' ? '#4FC3F7'
           : currentView === 'earthquakes' ? d.color
-          : currentView === 'flights' ? d.color
           : (d.color || '#ffffff')
         }
         pointRadius={(d: any) =>
           currentView === 'population' ? 0.4 + (d.weight * 2.5)
           : currentView === 'earthquakes' ? 0.15 + (d.weight * 0.8)
-          : currentView === 'flights' ? 0.15
           : 0.8
         }
         pointLabel={(d: any) =>
@@ -720,24 +775,6 @@ const GlobeComponent = () => {
               </div>
               ${d.isRecent ? '<div style="margin-top: 8px; padding: 4px 8px; background: rgba(255,68,68,0.3); border-radius: 4px; font-size: 11px; color: #ff6666; display: inline-block;">Recent Event</div>' : ''}
             </div>
-          ` : currentView === 'flights' ? `
-            <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${d.color}44;">
-              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: ${d.color}33; border: 2px solid ${d.color}; display: flex; align-items: center; justify-content: center;">
-                  <span style="font-size: 18px;">✈️</span>
-                </div>
-                <div>
-                  <div style="font-size: 16px; font-weight: 700; color: ${d.color};">${d.callsign || 'Unknown'}</div>
-                  <div style="font-size: 11px; color: rgba(255,255,255,0.5);">${d.originCountry}</div>
-                </div>
-              </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.8);">
-                <div>Alt: ${d.altitudeFt?.toLocaleString() || 0} ft</div>
-                <div>Speed: ${d.speedKnots || 0} kts</div>
-                <div>Heading: ${Math.round(d.heading || 0)}°</div>
-                <div>${d.onGround ? 'On Ground' : 'In Flight'}</div>
-              </div>
-            </div>
           ` : `
             <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
               <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
@@ -756,12 +793,10 @@ const GlobeComponent = () => {
             handlePopulationClick(point as PopulationDataPoint);
           } else if (currentView === 'earthquakes') {
             handleEarthquakeClick(point as Earthquake);
-          } else if (currentView === 'flights') {
-            flightData.setSelectedFlight(point);
           }
         }}
         onPointHover={(point: any) => {
-          if (currentView === 'explorer' || currentView === 'population' || currentView === 'earthquakes' || currentView === 'flights') {
+          if (currentView === 'explorer' || currentView === 'population' || currentView === 'earthquakes') {
             if (currentView === 'explorer') {
               setHoverCity(point as City | null);
             }
@@ -839,46 +874,115 @@ const GlobeComponent = () => {
           // Recent earthquakes pulse faster, all pulse visibly
           return d.isRecent ? 600 : 1200;
         }}
-        // Custom 3D layer for satellites
-        customLayerData={currentView === 'satellites' ? satelliteData.positions : []}
-        customThreeObject={currentView === 'satellites' ? createSatelliteObject : undefined}
-        customThreeObjectUpdate={(obj: THREE.Object3D, sat: SatellitePosition) => {
-          // Update position dynamically as satellites move
-          if (globeEl.current && sat.lat !== undefined) {
-            const coords = globeEl.current.getCoords(sat.lat, sat.lng, sat.alt);
-            if (coords) {
-              obj.position.set(coords.x, coords.y, coords.z);
-            }
-          }
-        }}
-        customLayerLabel={(sat: SatellitePosition) => `
-          <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${sat.color}44;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-              <div style="width: 40px; height: 40px; border-radius: 50%; background: ${sat.color}33; border: 2px solid ${sat.color}; display: flex; align-items: center; justify-content: center;">
-                <span style="font-size: 18px;">${SATELLITE_CATEGORIES[sat.category]?.icon || '🛰️'}</span>
-              </div>
-              <div>
-                <div style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase;">${SATELLITE_CATEGORIES[sat.category]?.name || 'Satellite'}</div>
-                <div style="font-size: 14px; font-weight: 600;">${sat.name}</div>
-              </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.8);">
-              <div>Alt: ${(sat.alt * EARTH_RADIUS_KM).toFixed(0)} km</div>
-              <div>Vel: ${sat.velocity.toFixed(1)} km/s</div>
-              <div>Lat: ${sat.lat.toFixed(2)}°</div>
-              <div>Lng: ${sat.lng.toFixed(2)}°</div>
-            </div>
-          </div>
-        `}
-        onCustomLayerClick={(sat: SatellitePosition) => {
+        // Custom 3D layer for satellites and flights
+        customLayerData={
+          currentView === 'satellites' ? satelliteData.positions
+          : currentView === 'flights' ? flightData.filteredFlights
+          : []
+        }
+        customThreeObject={
+          currentView === 'satellites' ? (d: object) => createSatelliteObject(d as SatellitePosition)
+          : currentView === 'flights' ? (d: object) => createAirplaneObject(d as Flight)
+          : undefined
+        }
+        customThreeObjectUpdate={(obj: THREE.Object3D, d: any) => {
           if (currentView === 'satellites') {
-            handleSatelliteClick(sat);
+            // Update position dynamically as satellites move
+            if (globeEl.current && d.lat !== undefined) {
+              const coords = globeEl.current.getCoords(d.lat, d.lng, d.alt);
+              if (coords) {
+                obj.position.set(coords.x, coords.y, coords.z);
+              }
+            }
+          } else if (currentView === 'flights') {
+            // Update position for flights
+            const flight = d as Flight;
+            if (globeEl.current && flight.lat !== undefined) {
+              // Scale altitude: flights at ~12000m = ~0.01 globe units
+              const altitudeScale = 0.01 + (flight.altitude / 500000);
+              const coords = globeEl.current.getCoords(flight.lat, flight.lng, altitudeScale);
+              if (coords) {
+                obj.position.set(coords.x, coords.y, coords.z);
+              }
+            }
+            // Update rotation for heading changes
+            const cone = obj.children.find(c => c instanceof THREE.Mesh && (c as THREE.Mesh).geometry instanceof THREE.ConeGeometry);
+            if (cone) {
+              cone.rotation.z = -((flight.heading || 0) * Math.PI / 180);
+            }
+            // Update opacity for selection state
+            const isDimmed = flightData.selectedFlight && flightData.selectedFlight.icao24 !== flight.icao24;
+            obj.children.forEach(child => {
+              if (child instanceof THREE.Mesh) {
+                const material = child.material as THREE.MeshBasicMaterial;
+                if (child.geometry instanceof THREE.ConeGeometry) {
+                  material.opacity = isDimmed ? 0.15 : 1;
+                } else {
+                  material.opacity = isDimmed ? 0.05 : 0.2;
+                }
+              }
+            });
           }
         }}
-        onCustomLayerHover={(sat: SatellitePosition | null) => {
+        customLayerLabel={(d: any) => {
+          if (currentView === 'satellites') {
+            const sat = d as SatellitePosition;
+            return `
+              <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${sat.color}44;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                  <div style="width: 40px; height: 40px; border-radius: 50%; background: ${sat.color}33; border: 2px solid ${sat.color}; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 18px;">${SATELLITE_CATEGORIES[sat.category]?.icon || '🛰️'}</span>
+                  </div>
+                  <div>
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase;">${SATELLITE_CATEGORIES[sat.category]?.name || 'Satellite'}</div>
+                    <div style="font-size: 14px; font-weight: 600;">${sat.name}</div>
+                  </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.8);">
+                  <div>Alt: ${(sat.alt * EARTH_RADIUS_KM).toFixed(0)} km</div>
+                  <div>Vel: ${sat.velocity.toFixed(1)} km/s</div>
+                  <div>Lat: ${sat.lat.toFixed(2)}°</div>
+                  <div>Lng: ${sat.lng.toFixed(2)}°</div>
+                </div>
+              </div>
+            `;
+          } else if (currentView === 'flights') {
+            const flight = d as Flight;
+            const categoryConfig = FLIGHT_CATEGORIES[flight.category];
+            const color = categoryConfig?.color || flight.color;
+            return `
+              <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${color}44;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                  <div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}33; border: 2px solid ${color}; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 18px;">${categoryConfig?.icon || '✈️'}</span>
+                  </div>
+                  <div>
+                    <div style="font-size: 16px; font-weight: 700; color: ${color};">${flight.callsign || 'Unknown'}</div>
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.5);">${categoryConfig?.name || 'Aircraft'} • ${flight.originCountry}</div>
+                  </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.8);">
+                  <div>Alt: ${flight.altitudeFt?.toLocaleString() || 0} ft</div>
+                  <div>Speed: ${flight.speedKnots || 0} kts</div>
+                  <div>Heading: ${Math.round(flight.heading || 0)}°</div>
+                  <div>${flight.onGround ? 'On Ground' : 'In Flight'}</div>
+                </div>
+              </div>
+            `;
+          }
+          return '';
+        }}
+        onCustomLayerClick={(d: any) => {
+          if (currentView === 'satellites') {
+            handleSatelliteClick(d as SatellitePosition);
+          } else if (currentView === 'flights') {
+            handleFlightClick(d as Flight);
+          }
+        }}
+        onCustomLayerHover={(d: any) => {
           const canvas = document.querySelector('canvas');
           if (canvas) {
-            canvas.style.cursor = sat ? 'pointer' : 'grab';
+            canvas.style.cursor = d ? 'pointer' : 'grab';
           }
         }}
         onZoom={handleZoom}
@@ -1225,8 +1329,17 @@ const GlobeComponent = () => {
             onRefresh={flightData.refresh}
             isAutoRefreshing={flightData.isAutoRefreshing}
             onToggleAutoRefresh={flightData.setAutoRefresh}
+            searchQuery={flightData.searchQuery}
+            onSearchChange={flightData.setSearchQuery}
+            searchResults={flightData.searchResults}
+            onSelectFlight={flightData.setSelectedFlight}
+            filteredCount={flightData.filteredFlights.length}
           />
-          <FlightLegend />
+          <FlightLegend
+            selectedCategories={flightData.selectedCategories}
+            onToggleCategory={handleToggleFlightCategory}
+            categoryCounts={flightData.categoryCounts}
+          />
           {flightData.selectedFlight && (
             <FlightPanel
               flight={flightData.selectedFlight}
@@ -1288,7 +1401,7 @@ const GlobeComponent = () => {
             : currentView === 'pollution'
             ? `${pollutionData.loading ? 'Loading air quality...' : `${pollutionData.pollutionData.length} monitoring points`}`
             : currentView === 'flights'
-            ? `${flightData.loading ? 'Loading flights...' : `${flightData.flights.length.toLocaleString()} aircraft tracked`}`
+            ? `${flightData.loading ? 'Loading flights...' : `${flightData.filteredFlights.length.toLocaleString()} of ${flightData.flights.length.toLocaleString()} aircraft`}`
             : VIEWS.find(v => v.id === currentView)?.description}
         </p>
         <p style={{ margin: '5px 0', fontSize: '12px', opacity: 0.7 }}>

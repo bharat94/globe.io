@@ -32,7 +32,7 @@ interface UseSatelliteDataReturn {
   loading: boolean;
   error: string | null;
   selectedCategories: SatelliteCategory[];
-  setSelectedCategories: (categories: SatelliteCategory[]) => void;
+  setSelectedCategories: React.Dispatch<React.SetStateAction<SatelliteCategory[]>>;
   selectedSatellite: Satellite | null;
   setSelectedSatellite: (sat: Satellite | null) => void;
   isAnimating: boolean;

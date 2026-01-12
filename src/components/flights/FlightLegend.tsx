@@ -1,7 +1,18 @@
 import React from 'react';
-import { ALTITUDE_COLORS } from '../../types/flights';
+import type { FlightCategory } from '../../types/flights';
+import { FLIGHT_CATEGORIES } from '../../types/flights';
 
-const FlightLegend: React.FC = () => {
+interface FlightLegendProps {
+  selectedCategories: FlightCategory[];
+  onToggleCategory: (category: FlightCategory) => void;
+  categoryCounts: Record<FlightCategory, number>;
+}
+
+const FlightLegend: React.FC<FlightLegendProps> = ({
+  selectedCategories,
+  onToggleCategory,
+  categoryCounts
+}) => {
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
     bottom: '100px',
@@ -13,7 +24,7 @@ const FlightLegend: React.FC = () => {
     color: 'white',
     zIndex: 1000,
     border: '1px solid rgba(255, 255, 255, 0.1)',
-    minWidth: '180px'
+    minWidth: '200px'
   };
 
   const titleStyle: React.CSSProperties = {
@@ -25,45 +36,80 @@ const FlightLegend: React.FC = () => {
     gap: '8px'
   };
 
-  const scaleLabels = ALTITUDE_COLORS.map((item, index) => ({
-    color: item.color,
-    label: item.label
-  }));
+  const categories = Object.entries(FLIGHT_CATEGORIES) as [FlightCategory, typeof FLIGHT_CATEGORIES[FlightCategory]][];
+  const totalCount = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
 
   return (
     <div style={containerStyle}>
       <div style={titleStyle}>
         <span style={{ fontSize: '16px' }}>✈️</span>
-        <span>Altitude</span>
+        <span>Flight Categories</span>
+        <span style={{
+          marginLeft: 'auto',
+          fontSize: '10px',
+          color: 'rgba(255,255,255,0.5)'
+        }}>
+          {totalCount.toLocaleString()} total
+        </span>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        {scaleLabels.map((item, index) => (
-          <div
-            key={index}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '4px 6px',
-              borderRadius: '4px',
-              background: 'rgba(255, 255, 255, 0.03)'
-            }}
-          >
-            <div
+        {categories.map(([key, config]) => {
+          const isSelected = selectedCategories.includes(key);
+          const count = categoryCounts[key] || 0;
+
+          return (
+            <button
+              key={key}
+              onClick={() => onToggleCategory(key)}
               style={{
-                width: '20px',
-                height: '12px',
-                borderRadius: '2px',
-                background: item.color,
-                flexShrink: 0
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '8px 10px',
+                borderRadius: '6px',
+                background: isSelected
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : 'rgba(255, 255, 255, 0.02)',
+                border: 'none',
+                cursor: 'pointer',
+                opacity: isSelected ? 1 : 0.4,
+                transition: 'all 0.2s ease',
+                width: '100%',
+                textAlign: 'left'
               }}
-            />
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
-              {item.label}
-            </div>
-          </div>
-        ))}
+            >
+              <div
+                style={{
+                  width: '14px',
+                  height: '14px',
+                  borderRadius: '50%',
+                  background: config.color,
+                  flexShrink: 0,
+                  boxShadow: isSelected ? `0 0 8px ${config.color}66` : 'none'
+                }}
+              />
+              <span style={{
+                fontSize: '12px',
+                color: 'white',
+                flex: 1
+              }}>
+                {config.icon} {config.name}
+              </span>
+              <span style={{
+                fontSize: '11px',
+                color: 'rgba(255,255,255,0.5)',
+                background: 'rgba(255,255,255,0.1)',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                minWidth: '40px',
+                textAlign: 'center'
+              }}>
+                {count.toLocaleString()}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div style={{
@@ -71,9 +117,12 @@ const FlightLegend: React.FC = () => {
         paddingTop: '12px',
         borderTop: '1px solid rgba(255,255,255,0.1)',
         fontSize: '10px',
-        color: 'rgba(255,255,255,0.4)'
+        color: 'rgba(255,255,255,0.4)',
+        display: 'flex',
+        justifyContent: 'space-between'
       }}>
-        Data: OpenSky Network
+        <span>Data: OpenSky Network</span>
+        <span>Click to toggle</span>
       </div>
     </div>
   );
