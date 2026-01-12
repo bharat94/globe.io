@@ -3,8 +3,9 @@
  * Fetches and manages real-time flight tracking data
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Flight, FlightMetadata, FlightTrack, FlightCategory } from '../types/flights';
+import type { Flight, FlightMetadata, FlightTrack, FlightCategory, FlightRoute } from '../types/flights';
 import { categorizeFlightByCallsign, getCategoryColor } from '../types/flights';
+import { determineFlightRoute } from '../utils/airports';
 
 const API_BASE = 'http://localhost:3001/api/flights';
 const REFRESH_INTERVAL = 15000; // 15 seconds
@@ -189,9 +190,18 @@ export const useFlightData = (): UseFlightDataReturn => {
         throw new Error(`Failed to fetch track: ${response.statusText}`);
       }
 
-      const track = await response.json();
+      const track: FlightTrack = await response.json();
 
       if (!isMountedRef.current) return;
+
+      // Compute origin/destination from track data
+      if (track.path && track.path.length > 0) {
+        const { origin, destination } = determineFlightRoute(track.path);
+        track.route = {
+          origin: origin ? { code: origin.code, city: origin.city, country: origin.country } : null,
+          destination: destination ? { code: destination.code, city: destination.city, country: destination.country } : null
+        };
+      }
 
       setSelectedFlightTrack(track);
       setTrackLoading(false);

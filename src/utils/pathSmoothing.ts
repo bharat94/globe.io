@@ -1,12 +1,14 @@
 /**
  * Path smoothing utilities for flight trails
  * Uses Catmull-Rom spline interpolation for smooth curves
+ * Creates realistic flight profiles with smooth climb/cruise/descent
  */
 
-interface PathPoint {
+export interface PathPoint {
   lat: number;
   lng: number;
   altitude: number;
+  onGround?: boolean;
 }
 
 /**
@@ -52,9 +54,8 @@ function unwrapLongitude(points: PathPoint[]): PathPoint[] {
     }
 
     result.push({
-      lat: points[i].lat,
-      lng: curr,
-      altitude: points[i].altitude
+      ...points[i],
+      lng: curr
     });
   }
 
@@ -62,7 +63,94 @@ function unwrapLongitude(points: PathPoint[]): PathPoint[] {
 }
 
 /**
+ * Create a smooth altitude profile for realistic flight visualization
+ * Ensures gradual climb from takeoff and gradual descent to landing
+ */
+function createSmoothAltitudeProfile(points: PathPoint[]): number[] {
+  if (points.length < 2) return points.map(p => p.altitude);
+
+  const altitudes = points.map(p => p.altitude);
+  const n = altitudes.length;
+
+  // Find max cruise altitude
+  const maxAltitude = Math.max(...altitudes);
+
+  // If flight is mostly on ground or very short, return as-is
+  if (maxAltitude < 1000 || n < 5) {
+    return altitudes;
+  }
+
+  // Find climb and descent phases
+  let climbEndIndex = 0;
+  let descentStartIndex = n - 1;
+
+  // Find where climb ends (reaches ~90% of max altitude)
+  const cruiseThreshold = maxAltitude * 0.85;
+  for (let i = 0; i < n; i++) {
+    if (altitudes[i] >= cruiseThreshold) {
+      climbEndIndex = i;
+      break;
+    }
+  }
+
+  // Find where descent begins (last point at ~90% of max altitude)
+  for (let i = n - 1; i >= 0; i--) {
+    if (altitudes[i] >= cruiseThreshold) {
+      descentStartIndex = i;
+      break;
+    }
+  }
+
+  // Ensure reasonable phase lengths
+  if (climbEndIndex < 2) climbEndIndex = Math.min(Math.floor(n * 0.2), n - 1);
+  if (descentStartIndex > n - 3) descentStartIndex = Math.max(Math.floor(n * 0.8), 0);
+
+  const smoothAltitudes: number[] = [];
+
+  for (let i = 0; i < n; i++) {
+    if (i <= climbEndIndex) {
+      // Climb phase: use smooth easing from ground to cruise
+      // S-curve (ease-in-out) for realistic climb profile
+      const t = climbEndIndex > 0 ? i / climbEndIndex : 1;
+      const eased = t < 0.5
+        ? 2 * t * t
+        : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+      const startAlt = altitudes[0] || 0;
+      const endAlt = altitudes[climbEndIndex] || maxAltitude;
+      smoothAltitudes.push(startAlt + (endAlt - startAlt) * eased);
+    } else if (i >= descentStartIndex) {
+      // Descent phase: smooth descent to landing
+      const descentLength = n - 1 - descentStartIndex;
+      const t = descentLength > 0 ? (i - descentStartIndex) / descentLength : 1;
+      // Reverse S-curve for smooth descent
+      const eased = t < 0.5
+        ? 2 * t * t
+        : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+      const startAlt = altitudes[descentStartIndex] || maxAltitude;
+      const endAlt = altitudes[n - 1] || 0;
+      smoothAltitudes.push(startAlt + (endAlt - startAlt) * eased);
+    } else {
+      // Cruise phase: maintain relatively constant altitude with minor smoothing
+      // Use a weighted average of nearby points to smooth turbulence
+      const windowSize = 3;
+      let sum = 0;
+      let count = 0;
+      for (let j = Math.max(0, i - windowSize); j <= Math.min(n - 1, i + windowSize); j++) {
+        sum += altitudes[j];
+        count++;
+      }
+      smoothAltitudes.push(sum / count);
+    }
+  }
+
+  return smoothAltitudes;
+}
+
+/**
  * Smooth a flight path using Catmull-Rom spline interpolation
+ * Creates realistic flight profile with smooth climb/cruise/descent
  * @param points Raw track points from API
  * @param segmentsPerPoint Number of interpolated points between each original point
  * @returns Smoothed path coordinates as [lng, lat, alt] arrays
@@ -75,8 +163,17 @@ export function smoothFlightPath(
     return points?.map(p => [p.lng, p.lat, p.altitude / 50000]) || [];
   }
 
+  // First, create smooth altitude profile
+  const smoothAltitudes = createSmoothAltitudeProfile(points);
+
+  // Apply smoothed altitudes to points
+  const pointsWithSmoothAlt = points.map((p, i) => ({
+    ...p,
+    altitude: smoothAltitudes[i]
+  }));
+
   // Unwrap longitudes to handle antimeridian crossing
-  const unwrapped = unwrapLongitude(points);
+  const unwrapped = unwrapLongitude(pointsWithSmoothAlt);
 
   // If only 2 points, just return them (can't do spline with less than 4)
   if (unwrapped.length === 2) {
@@ -101,13 +198,15 @@ export function smoothFlightPath(
       const lng = catmullRomInterpolate(p0.lng, p1.lng, p2.lng, p3.lng, t);
       const alt = catmullRomInterpolate(p0.altitude, p1.altitude, p2.altitude, p3.altitude, t);
 
-      result.push([lng, lat, alt / 50000]);
+      // Ensure altitude is never negative
+      const clampedAlt = Math.max(0, alt);
+      result.push([lng, lat, clampedAlt / 50000]);
     }
   }
 
   // Add the final point
   const lastPoint = unwrapped[unwrapped.length - 1];
-  result.push([lastPoint.lng, lastPoint.lat, lastPoint.altitude / 50000]);
+  result.push([lastPoint.lng, lastPoint.lat, Math.max(0, lastPoint.altitude) / 50000]);
 
   return result;
 }

@@ -169,12 +169,18 @@ export interface FlightTrackPoint {
   onGround: boolean;
 }
 
+export interface FlightRoute {
+  origin: { code: string; city: string; country: string } | null;
+  destination: { code: string; city: string; country: string } | null;
+}
+
 export interface FlightTrack {
   icao24: string;
   callsign: string | null;
   startTime?: number;
   endTime?: number;
   path: FlightTrackPoint[];
+  route?: FlightRoute;
 }
 
 export interface Flight {

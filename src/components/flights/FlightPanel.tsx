@@ -124,6 +124,48 @@ const FlightPanel: React.FC<FlightPanelProps> = ({
         <button style={closeButtonStyle} onClick={onClose}>×</button>
       </div>
 
+      {/* Route Display */}
+      {track?.route && (track.route.origin || track.route.destination) && (
+        <div style={{
+          background: `linear-gradient(135deg, ${flight.color}22, ${flight.color}11)`,
+          border: `1px solid ${flight.color}44`,
+          borderRadius: '10px',
+          padding: '12px 14px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: flight.color }}>
+              {track.route.origin?.code || '???'}
+            </div>
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
+              {track.route.origin?.city || 'Unknown'}
+            </div>
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: 'rgba(255,255,255,0.4)'
+          }}>
+            <div style={{ width: '24px', height: '1px', background: 'rgba(255,255,255,0.3)' }} />
+            <span style={{ fontSize: '16px' }}>✈</span>
+            <div style={{ width: '24px', height: '1px', background: 'rgba(255,255,255,0.3)' }} />
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: flight.color }}>
+              {track.route.destination?.code || '???'}
+            </div>
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
+              {track.route.destination?.city || 'Unknown'}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={gridStyle}>
         <div style={statStyle}>
           <div style={statLabelStyle}>Altitude</div>
