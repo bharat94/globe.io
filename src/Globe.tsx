@@ -10,6 +10,7 @@ import type { SatellitePosition, SatelliteCategory } from './types/satellite';
 import { SATELLITE_CATEGORIES, EARTH_RADIUS_KM } from './types/satellite';
 import type { Flight, FlightCategory } from './types/flights';
 import { FLIGHT_CATEGORIES } from './types/flights';
+import { smoothFlightPath } from './utils/pathSmoothing';
 import { VIEWS } from './types/views';
 import ViewSelector from './components/ViewSelector';
 import TimeSlider from './components/weather/TimeSlider';
@@ -208,6 +209,15 @@ const GlobeComponent = () => {
       return pos || { id: sat.id, name: sat.name, category: sat.category, lat: 0, lng: 0, alt: 0, velocity: 0, color: '' };
     }).filter(p => p.lat !== 0 || p.lng !== 0);
   }, [satelliteData.satellites]); // Only recalculate when satellites list changes, not on every position update
+
+  // Memoize smoothed flight path to avoid recalculation on every render
+  const smoothedFlightPath = useMemo(() => {
+    if (!flightData.selectedFlightTrack?.path?.length) return null;
+
+    const path = flightData.selectedFlightTrack.path;
+    // Use smoothFlightPath for interpolated curve
+    return smoothFlightPath(path, 8); // 8 segments per point for smooth curve
+  }, [flightData.selectedFlightTrack]);
 
   useEffect(() => {
     search.updateData({
@@ -828,9 +838,9 @@ const GlobeComponent = () => {
         heatmapsTransitionDuration={1200}
         // Flight trail and satellite orbit paths
         pathsData={
-          currentView === 'flights' && flightData.showTrail && flightData.selectedFlightTrack?.path?.length
+          currentView === 'flights' && flightData.showTrail && smoothedFlightPath?.length
             ? [{
-                coords: flightData.selectedFlightTrack.path.map(p => [p.lng, p.lat, p.altitude / 50000]),
+                coords: smoothedFlightPath,
                 color: flightData.selectedFlight?.color || '#FF9800'
               }]
             : currentView === 'satellites' && satelliteData.showOrbit && satelliteData.selectedSatelliteOrbit?.length
@@ -847,11 +857,11 @@ const GlobeComponent = () => {
         pathPointLng={(p: number[]) => p[0]}
         pathPointAlt={(p: number[]) => p[2] || 0.01}
         pathColor={(d: any) => d.color}
-        pathStroke={2}
-        pathDashLength={0.5}
-        pathDashGap={0.1}
-        pathDashAnimateTime={2000}
-        pathTransitionDuration={500}
+        pathStroke={currentView === 'flights' ? 3 : 2}
+        pathDashLength={currentView === 'flights' ? 0 : 0.5}
+        pathDashGap={currentView === 'flights' ? 0 : 0.1}
+        pathDashAnimateTime={currentView === 'flights' ? 0 : 2000}
+        pathTransitionDuration={0}
         // Earthquake rings layer - seismic wave animation
         ringsData={currentView === 'earthquakes' ? earthquakeData.earthquakes : []}
         ringLat="lat"
