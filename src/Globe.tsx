@@ -908,8 +908,9 @@ const GlobeComponent = () => {
             // Update position for flights
             const flight = d as Flight;
             if (globeEl.current && flight.lat !== undefined) {
-              // Scale altitude: flights at ~12000m = ~0.01 globe units
-              const altitudeScale = 0.01 + (flight.altitude / 500000);
+              // Scale altitude for visual prominence:
+              // Ground: 0.005, Cruise (~12000m): ~0.085, High alt: ~0.1
+              const altitudeScale = 0.005 + (flight.altitude / 150000);
               const coords = globeEl.current.getCoords(flight.lat, flight.lng, altitudeScale);
               if (coords) {
                 obj.position.set(coords.x, coords.y, coords.z);
