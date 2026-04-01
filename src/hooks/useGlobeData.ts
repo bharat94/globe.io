@@ -69,9 +69,13 @@ export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn =
   const { sourceType, initialYear = 2024, initialMonth = 1 } = options;
 
   // Create data source instance (memoized)
-  const dataSourceRef = useRef(
-    dataSources[sourceType] ? dataSources[sourceType]() : null
-  );
+  const dataSourceRef = useRef<ReturnType<typeof dataSources.weather> | null>(null);
+  
+  useEffect(() => {
+    if (sourceType === 'weather') {
+      dataSourceRef.current = dataSources.weather();
+    }
+  }, [sourceType]);
 
   // State
   const [data, setData] = useState<HeatmapDataPoint[]>([]);
@@ -87,8 +91,8 @@ export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn =
   const [currentResolution, setCurrentResolution] = useState(10);
 
   // Refs for timers
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const playIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch metadata on mount
   useEffect(() => {
@@ -170,10 +174,10 @@ export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn =
 
           // Merge data, preferring higher resolution
           const dataMap = new Map<string, HeatmapDataPoint>();
-          globalData.forEach(p => {
+          globalData.forEach((p: HeatmapDataPoint) => {
             dataMap.set(`${p.lat.toFixed(1)},${p.lng.toFixed(1)}`, p);
           });
-          result.forEach(p => {
+          result.forEach((p: HeatmapDataPoint) => {
             dataMap.set(`${p.lat.toFixed(2)},${p.lng.toFixed(2)}`, p);
           });
 
@@ -190,14 +194,14 @@ export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn =
     };
 
     fetchData();
-  }, [selectedYear, selectedMonth, viewport, getViewportBounds, sourceType]);
+  }, [selectedYear, selectedMonth, viewport, sourceType]);
 
   // Debounced viewport setter
   const setViewport = useCallback((newViewport: Viewport) => {
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
     }
-    fetchTimeoutRef.current = setTimeout(() => {
+    fetchTimeoutRef.current = window.setTimeout(() => {
       setViewportState(newViewport);
     }, 150);
   }, []);
