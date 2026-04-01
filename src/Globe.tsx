@@ -757,6 +757,16 @@ const GlobeComponent = () => {
           : currentView === 'earthquakes' ? 0.15 + (d.weight * 0.8)
           : 0.8
         }
+        // Labels layer for city markers with glowing dots (explorer view)
+        labelsData={currentView === 'explorer' ? cities : []}
+        labelLat="lat"
+        labelLng="lng"
+        labelAltitude={0.02}
+        labelText={() => ''}
+        labelSize={0}
+        labelDotRadius={0.5}
+        labelColor={(d: any) => d.color || '#00ffcc'}
+        labelResolution={2}
         pointLabel={(d: any) =>
           currentView === 'population' ? `
             <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
@@ -862,28 +872,22 @@ const GlobeComponent = () => {
         pathDashGap={currentView === 'flights' ? 0 : 0.1}
         pathDashAnimateTime={currentView === 'flights' ? 0 : 2000}
         pathTransitionDuration={0}
-        // Earthquake rings layer - seismic wave animation
-        ringsData={currentView === 'earthquakes' ? earthquakeData.earthquakes : []}
+        // Combined rings: city markers (explorer) + earthquake rings
+        ringsData={currentView === 'explorer' ? cities : currentView === 'earthquakes' ? earthquakeData.earthquakes : []}
         ringLat="lat"
         ringLng="lng"
-        ringAltitude={0.005}
+        ringAltitude={currentView === 'explorer' ? 0.02 : 0.005}
         ringColor={(d: any) => {
-          // Create a gradient from the earthquake's color to transparent
+          if (currentView === 'explorer') return d.color || '#00ffcc';
           const baseColor = d.color || '#ff4444';
           return [`${baseColor}cc`, `${baseColor}00`];
         }}
         ringMaxRadius={(d: any) => {
-          // Bigger magnitude = bigger ripple radius (in degrees)
+          if (currentView === 'explorer') return 0.5;
           return 3 + (d.magnitude - 2.5) * 2;
         }}
-        ringPropagationSpeed={(d: any) => {
-          // Stronger earthquakes propagate faster
-          return 2 + (d.magnitude - 2.5) * 0.8;
-        }}
-        ringRepeatPeriod={(d: any) => {
-          // Recent earthquakes pulse faster, all pulse visibly
-          return d.isRecent ? 600 : 1200;
-        }}
+        ringPropagationSpeed={currentView === 'explorer' ? 0 : (d: any) => 2 + (d.magnitude - 2.5) * 0.8}
+        ringRepeatPeriod={currentView === 'explorer' ? 0 : (d: any) => d.isRecent ? 600 : 1200}
         // Custom 3D layer for satellites and flights
         customLayerData={
           currentView === 'satellites' ? satelliteData.positions
