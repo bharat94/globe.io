@@ -35,7 +35,6 @@ import { usePollutionData } from './hooks/usePollutionData';
 import { useAuroraData } from './hooks/useAuroraData';
 import { useFlightData } from './hooks/useFlightData';
 import { useUrlState } from './hooks/useUrlState';
-import { getTemperatureColor } from './utils/weatherUtils';
 
 // Convert country code to flag emoji
 function getCountryFlag(countryCode: string): string {
@@ -121,7 +120,12 @@ const GlobeComponent = () => {
         earthquakeData.setMinMagnitude(urlState.mag);
       }
       if (urlState.days !== undefined) {
-        earthquakeData.setTimeRange(urlState.days);
+        // Convert numeric days to TimeRange
+        const days = urlState.days;
+        if (days <= 1) earthquakeData.setTimeRange('hour');
+        else if (days <= 7) earthquakeData.setTimeRange('day');
+        else if (days <= 30) earthquakeData.setTimeRange('week');
+        else earthquakeData.setTimeRange('month');
       }
       if (urlState.pollutant) {
         pollutionData.setSelectedPollutant(urlState.pollutant as any);
@@ -203,7 +207,6 @@ const GlobeComponent = () => {
   // Note: Using static satellite positions (calculated once) instead of animated positions to avoid 60fps updates
   const staticSatellitePositions = useMemo(() => {
     if (satelliteData.satellites.length === 0) return [];
-    const now = new Date();
     return satelliteData.satellites.map(sat => {
       const pos = satelliteData.positions.find(p => p.id === sat.id);
       return pos || { id: sat.id, name: sat.name, category: sat.category, lat: 0, lng: 0, alt: 0, velocity: 0, color: '' };
@@ -439,36 +442,6 @@ const GlobeComponent = () => {
       }
     }
   }, [weatherData]);
-
-  // Create glowing orb for each city marker
-  const createGlowingOrb = useCallback((city: any) => {
-    // Use the color directly from the city data
-    const color = city.color || '#ffffff';
-
-    // Main solid orb - using MeshBasicMaterial so color shows without needing lights
-    const orbGeometry = new THREE.SphereGeometry(0.8, 32, 32);
-    const orbMaterial = new THREE.MeshBasicMaterial({
-      color: color  // Use the hex string directly
-    });
-    const orb = new THREE.Mesh(orbGeometry, orbMaterial);
-
-    // Add point light inside the orb for glow effect on surroundings
-    const light = new THREE.PointLight(color, 0.6, 5);
-    orb.add(light);
-
-    // Outer glow halo with city color for enhanced glow
-    const glowGeometry = new THREE.SphereGeometry(1.0, 32, 32);
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.BackSide
-    });
-    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-    orb.add(glow);
-
-    return orb;
-  }, []);
 
   // Create 3D satellite object
   const createSatelliteObject = useCallback((sat: SatellitePosition) => {
@@ -742,7 +715,7 @@ const GlobeComponent = () => {
         }
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={(d: any) =>
+        pointAltitude={() =>
           currentView === 'population' ? 0.01
           : currentView === 'earthquakes' ? 0.01
           : (currentView === 'weather' ? 0.05 : 0.02)

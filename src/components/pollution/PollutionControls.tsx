@@ -53,6 +53,11 @@ const PollutionControls: React.FC<PollutionControlsProps> = ({
 
   return (
     <div style={containerStyle}>
+      {lastUpdated && (
+        <span style={{ fontSize: '11px', opacity: 0.6 }}>
+          Updated: {formatTime(lastUpdated)}
+        </span>
+      )}
       {/* Loading indicator with progress bar */}
       {loading && (
         <div style={{
