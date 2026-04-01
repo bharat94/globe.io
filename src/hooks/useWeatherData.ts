@@ -2,7 +2,7 @@
  * Weather-specific data hook
  * Wraps useGlobeData for backwards compatibility while adding weather-specific features
  */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useGlobeData, getZoomLevel, getResolutionForZoom } from './useGlobeData';
 import type { HeatmapPoint, YearRange, WeatherDataPoint } from '../types/weather';
 import type { Viewport, ZoomLevel } from '../datasources/types';
@@ -58,12 +58,15 @@ export const useWeatherData = (): UseWeatherDataReturn => {
     maxYear: metadata?.maxYear ?? 2024
   };
 
-  // Map data to HeatmapPoint format (ensuring backwards compatibility)
-  const heatmapData: HeatmapPoint[] = data.map(point => ({
-    lat: point.lat,
-    lng: point.lng,
-    weight: point.weight
-  }));
+  // Memoize heatmapData to prevent unnecessary re-renders
+  const heatmapData: HeatmapPoint[] = useMemo(() => 
+    data.map(point => ({
+      lat: point.lat,
+      lng: point.lng,
+      weight: point.weight
+    })),
+    [data]
+  );
 
   // Weather-specific: fetch detailed location data
   const getLocationData = useCallback(async (lat: number, lng: number): Promise<WeatherDataPoint | null> => {
