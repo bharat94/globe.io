@@ -28,6 +28,12 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 - Node.js v16+
 - MongoDB (local)
 
+```bash
+# Install MongoDB (macOS)
+brew tap mongodb/brew && brew install mongodb-community@7.0
+brew services start mongodb/brew/mongodb-community@7.0
+```
+
 ### Stopping
 
 ```bash
