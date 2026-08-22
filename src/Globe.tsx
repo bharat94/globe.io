@@ -725,13 +725,10 @@ const GlobeComponent = () => {
       <Globe
         ref={globeEl}
         globeImageUrl={isDayMode
-          ? "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-          : "//unpkg.com/three-globe/example/img/earth-night.jpg"
+          ? "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+          : "https://unpkg.com/three-globe/example/img/earth-night.jpg"
         }
-        backgroundImageUrl={isDayMode
-          ? "//unpkg.com/three-globe/example/img/night-sky.png"
-          : "//unpkg.com/three-globe/example/img/night-sky.png"
-        }
+        backgroundImageUrl="https://unpkg.com/three-globe/example/img/night-sky.png"
         // Show different point data based on view (flights use custom layer instead)
         pointsData={
           currentView === 'population'
