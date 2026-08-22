@@ -37,16 +37,8 @@ import { useFlightData } from './hooks/useFlightData';
 import { useUrlState } from './hooks/useUrlState';
 import { getTemperatureColor } from './utils/weatherUtils';
 import { API_ENDPOINTS } from './config';
-
-// Convert country code to flag emoji
-function getCountryFlag(countryCode: string): string {
-  if (!countryCode) return '';
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map(char => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
-}
+import { getCountryFlag } from './utils/countryFlag';
+import { useSharedGeometries } from './hooks/useSharedGeometries';
 
 const GlobeComponent = () => {
   const globeEl = useRef<any>(null);
@@ -445,28 +437,8 @@ const GlobeComponent = () => {
     }
   }, [weatherData]);
 
-  // Shared geometries for satellite/airplane objects — reused across instances to prevent GC pressure
-  // NOTE: Geometries are intentionally shared; only Materials are per-instance (to allow per-category colors)
-  const sharedGeometries = useMemo(() => ({
-    satSphere: new THREE.SphereGeometry(0.4, 8, 8),
-    issBody: new THREE.BoxGeometry(3.0, 0.75, 0.75),
-    issPanel: new THREE.BoxGeometry(0.45, 4.5, 0.15),
-    satGlowSmall: new THREE.SphereGeometry(1.0, 16, 16),
-    satGlowISS: new THREE.SphereGeometry(6.0, 16, 16),
-    airplaneCone: (() => {
-      const g = new THREE.ConeGeometry(0.4, 1.2, 4);
-      g.rotateX(Math.PI / 2);
-      return g;
-    })(),
-    airplaneGlow: new THREE.SphereGeometry(0.8, 16, 16),
-  }), []);
-
-  // Cleanup shared geometries on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(sharedGeometries).forEach(g => g.dispose());
-    };
-  }, [sharedGeometries]);
+  // Shared geometries for satellite/airplane objects — extracted to hook to keep Globe.tsx lean
+  const sharedGeometries = useSharedGeometries();
 
   // Create 3D satellite object — uses shared geometries, per-instance materials
   const createSatelliteObject = useCallback((sat: SatellitePosition) => {
