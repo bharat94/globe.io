@@ -122,17 +122,12 @@ const GlobeComponent = () => {
         earthquakeData.setMinMagnitude(urlState.mag);
       }
       if (urlState.days !== undefined) {
-        const daysToRange = (d: number): import('./types/earthquake').TimeRange => {
-          if (d <= 1) return 'day';
-          if (d <= 7) return 'week';
-          if (d <= 30) return 'month';
-          return 'day';
-        };
-        // urlState.days is numeric, map to TimeRange; allow string passthrough too
-        const range = typeof urlState.days === 'string'
-          ? (urlState.days as unknown as import('./types/earthquake').TimeRange)
-          : daysToRange(urlState.days);
-        earthquakeData.setTimeRange(range);
+        // Convert numeric days to TimeRange (handles urlState.days as number)
+        const days = urlState.days as unknown as number;
+        if (days <= 1) earthquakeData.setTimeRange('hour');
+        else if (days <= 7) earthquakeData.setTimeRange('day');
+        else if (days <= 30) earthquakeData.setTimeRange('week');
+        else earthquakeData.setTimeRange('month');
       }
       if (urlState.pollutant) {
         pollutionData.setSelectedPollutant(urlState.pollutant as any);
@@ -214,7 +209,6 @@ const GlobeComponent = () => {
   // Note: Using static satellite positions (calculated once) instead of animated positions to avoid 60fps updates
   const staticSatellitePositions = useMemo(() => {
     if (satelliteData.satellites.length === 0) return [];
-    const now = new Date();
     return satelliteData.satellites.map(sat => {
       const pos = satelliteData.positions.find(p => p.id === sat.id);
       return pos || { id: sat.id, name: sat.name, category: sat.category, lat: 0, lng: 0, alt: 0, velocity: 0, color: '' };
@@ -727,7 +721,7 @@ const GlobeComponent = () => {
         }
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={(d: any) =>
+        pointAltitude={() =>
           currentView === 'population' ? 0.01
           : currentView === 'earthquakes' ? 0.01
           : (currentView === 'weather' ? 0.05 : 0.02)
@@ -742,6 +736,16 @@ const GlobeComponent = () => {
           : currentView === 'earthquakes' ? 0.15 + (d.weight * 0.8)
           : 0.8
         }
+        // Labels layer for city markers with glowing dots (explorer view)
+        labelsData={currentView === 'explorer' ? cities : []}
+        labelLat="lat"
+        labelLng="lng"
+        labelAltitude={0.02}
+        labelText={() => ''}
+        labelSize={0}
+        labelDotRadius={0.5}
+        labelColor={(d: any) => d.color || '#00ffcc'}
+        labelResolution={2}
         pointLabel={(d: any) =>
           currentView === 'population' ? `
             <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
@@ -847,28 +851,22 @@ const GlobeComponent = () => {
         pathDashGap={currentView === 'flights' ? 0 : 0.1}
         pathDashAnimateTime={currentView === 'flights' ? 0 : 2000}
         pathTransitionDuration={0}
-        // Earthquake rings layer - seismic wave animation
-        ringsData={currentView === 'earthquakes' ? earthquakeData.earthquakes : []}
+        // Combined rings: city markers (explorer) + earthquake rings
+        ringsData={currentView === 'explorer' ? cities : currentView === 'earthquakes' ? earthquakeData.earthquakes : []}
         ringLat="lat"
         ringLng="lng"
-        ringAltitude={0.005}
+        ringAltitude={currentView === 'explorer' ? 0.02 : 0.005}
         ringColor={(d: any) => {
-          // Create a gradient from the earthquake's color to transparent
+          if (currentView === 'explorer') return d.color || '#00ffcc';
           const baseColor = d.color || '#ff4444';
           return [`${baseColor}cc`, `${baseColor}00`];
         }}
         ringMaxRadius={(d: any) => {
-          // Bigger magnitude = bigger ripple radius (in degrees)
+          if (currentView === 'explorer') return 0.5;
           return 3 + (d.magnitude - 2.5) * 2;
         }}
-        ringPropagationSpeed={(d: any) => {
-          // Stronger earthquakes propagate faster
-          return 2 + (d.magnitude - 2.5) * 0.8;
-        }}
-        ringRepeatPeriod={(d: any) => {
-          // Recent earthquakes pulse faster, all pulse visibly
-          return d.isRecent ? 600 : 1200;
-        }}
+        ringPropagationSpeed={currentView === 'explorer' ? 0 : (d: any) => 2 + (d.magnitude - 2.5) * 0.8}
+        ringRepeatPeriod={currentView === 'explorer' ? 0 : (d: any) => d.isRecent ? 600 : 1200}
         // Custom 3D layer for satellites and flights
         customLayerData={
           currentView === 'satellites' ? satelliteData.positions
@@ -1367,6 +1365,40 @@ const GlobeComponent = () => {
             />
           )}
         </>
+      )}
+
+      {(weatherData.loading || populationData.loading) && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(0, 0, 0, 0.85)',
+          color: 'white',
+          padding: '20px 40px',
+          borderRadius: '12px',
+          fontSize: '16px',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            border: '2px solid rgba(255,255,255,0.3)',
+            borderTop: '2px solid white',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <span>Loading data...</span>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
       )}
 
       <div style={{

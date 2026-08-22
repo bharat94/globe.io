@@ -1,5 +1,5 @@
 import React from 'react';
-import { AQI_CATEGORIES, POLLUTANT_CONFIG, type AQICategory, type PollutantType } from '../../types/pollution';
+import { POLLUTANT_CONFIG, type PollutantType } from '../../types/pollution';
 
 interface PollutionLegendProps {
   selectedPollutant: PollutantType;

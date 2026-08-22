@@ -22,8 +22,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
   isPlaying,
   onYearChange,
   onMonthChange,
-  onPlayPause,
-  playbackSpeed
+  onPlayPause
 }) => {
   const containerStyle: React.CSSProperties = {
     position: 'absolute',

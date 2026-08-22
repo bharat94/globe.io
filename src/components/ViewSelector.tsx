@@ -1,5 +1,6 @@
 import type { ViewConfig, ViewType } from '../types/views';
 import { useIsMobile } from '../hooks/useMediaQuery';
+import { useRef, memo, useEffect } from 'react';
 
 interface ViewSelectorProps {
   views: ViewConfig[];
@@ -7,13 +8,29 @@ interface ViewSelectorProps {
   onViewChange: (view: ViewType) => void;
 }
 
+const STORAGE_KEY = 'globe-viewselector-scroll';
+
 const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) => {
   const isMobile = useIsMobile();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Restore scroll position after mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && scrollRef.current) {
+      scrollRef.current.scrollTop = parseInt(saved, 10);
+    }
+  }, []);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    localStorage.setItem(STORAGE_KEY, String(e.currentTarget.scrollTop));
+  };
 
   // Show 4.5 items to hint there's more content
   // Each item: 60px height, gap: 16px
   // 4 full items + half of 5th = (4 * 60) + (4 * 16) + 30 = 240 + 64 + 30 = 334px
-  const scrollableHeight = 334;
+  // Increased by 50% to 501px
+  const scrollableHeight = 501;
 
   // Mobile layout: horizontal bar at bottom
   if (isMobile) {
@@ -99,6 +116,8 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
         border: '1px solid rgba(255, 255, 255, 0.1)',
       }}>
         <div
+          ref={scrollRef}
+          onScroll={handleScroll}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -214,4 +233,4 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
   );
 };
 
-export default ViewSelector;
+export default memo(ViewSelector);

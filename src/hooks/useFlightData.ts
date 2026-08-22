@@ -3,7 +3,7 @@
  * Fetches and manages real-time flight tracking data
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Flight, FlightMetadata, FlightTrack, FlightCategory, FlightRoute } from '../types/flights';
+import type { Flight, FlightMetadata, FlightTrack, FlightCategory } from '../types/flights';
 import { categorizeFlightByCallsign, getCategoryColor } from '../types/flights';
 import { determineFlightRoute } from '../utils/airports';
 import { API_ENDPOINTS } from '../config';

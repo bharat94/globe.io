@@ -18,11 +18,6 @@ export const useMediaQuery = (query: string): boolean => {
 
     const media = window.matchMedia(query);
 
-    // Update state if different
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
-
     // Create listener
     const listener = (event: MediaQueryListEvent) => {
       setMatches(event.matches);
@@ -34,7 +29,7 @@ export const useMediaQuery = (query: string): boolean => {
     return () => {
       media.removeEventListener('change', listener);
     };
-  }, [query, matches]);
+  }, [query]);
 
   return matches;
 };

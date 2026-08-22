@@ -92,8 +92,6 @@ const EarthquakePanel: React.FC<EarthquakePanelProps> = ({
     textAlign: 'center' as const
   };
 
-  const data = details || earthquake;
-
   return (
     <div style={panelStyle}>
       <button

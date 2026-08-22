@@ -65,10 +65,16 @@ interface UseGlobeDataReturn {
 export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn => {
   const { sourceType, initialYear = 2024, initialMonth = 1 } = options;
 
-  // Create data source instance (memoized)
-  const dataSourceRef = useRef(
-    dataSources[sourceType] ? dataSources[sourceType]() : null
+  // Create data source instance (memoized) — uses factory if available
+  const dataSourceRef = useRef<WeatherDataSource | null>(
+    sourceType === 'weather' && dataSources.weather ? dataSources.weather() : null
   );
+
+  useEffect(() => {
+    if (sourceType === 'weather' && dataSources.weather) {
+      dataSourceRef.current = dataSources.weather();
+    }
+  }, [sourceType]);
 
   // State
   const [data, setData] = useState<HeatmapDataPoint[]>([]);
@@ -187,14 +193,14 @@ export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn =
     };
 
     fetchData();
-  }, [selectedYear, selectedMonth, viewport, getViewportBounds, sourceType]);
+  }, [selectedYear, selectedMonth, viewport, sourceType]);
 
   // Debounced viewport setter
   const setViewport = useCallback((newViewport: Viewport) => {
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
     }
-    fetchTimeoutRef.current = setTimeout(() => {
+    fetchTimeoutRef.current = window.setTimeout(() => {
       setViewportState(newViewport);
     }, 150);
   }, []);

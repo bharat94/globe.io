@@ -45,9 +45,16 @@ check_database_exists() {
         return 1
     fi
 
-    COUNT=$($MONGO_CMD --quiet --eval "db.getSiblingDB('$DB_NAME').cities.countDocuments()" 2>/dev/null)
-    if [ "$COUNT" -gt 0 ] 2>/dev/null; then
-        echo -e "${GREEN}✅ Database '$DB_NAME' exists with $COUNT cities${NC}"
+    CITIES_COUNT=$($MONGO_CMD --quiet --eval "db.getSiblingDB('$DB_NAME').cities.countDocuments()" 2>/dev/null)
+    POPULATION_COUNT=$($MONGO_CMD --quiet --eval "db.getSiblingDB('$DB_NAME').populationdatas.countDocuments()" 2>/dev/null)
+    
+    if [ "$CITIES_COUNT" -gt 0 ] 2>/dev/null; then
+        echo -e "${GREEN}✅ Database '$DB_NAME' exists with $CITIES_COUNT cities${NC}"
+        if [ "$POPULATION_COUNT" -gt 0 ] 2>/dev/null; then
+            echo -e "${GREEN}✅ Population data: $POPULATION_COUNT records${NC}"
+        else
+            echo -e "${YELLOW}⚠️  No population data found${NC}"
+        fi
         return 0
     else
         return 1
@@ -88,16 +95,27 @@ start_mongodb() {
 # Function to seed database
 seed_database() {
     echo -e "${YELLOW}🌱 Seeding database...${NC}"
-    cd server && npm run seed
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ Database seeded successfully${NC}"
-        cd ..
-        return 0
-    else
-        echo -e "${RED}❌ Failed to seed database${NC}"
+    cd server
+    
+    # Seed cities
+    npm run seed
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ Failed to seed cities${NC}"
         cd ..
         return 1
     fi
+    
+    # Seed population
+    npm run seed:population
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ Failed to seed population data${NC}"
+        cd ..
+        return 1
+    fi
+    
+    cd ..
+    echo -e "${GREEN}✅ Database seeded successfully${NC}"
+    return 0
 }
 
 # Function to install dependencies
