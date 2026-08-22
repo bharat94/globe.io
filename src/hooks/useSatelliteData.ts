@@ -72,9 +72,9 @@ function calculatePosition(
     const satrec = satellite.twoline2satrec(sat.tle.line1, sat.tle.line2);
 
     // Propagate satellite position
-    const positionAndVelocity = satellite.propagate(satrec, time);
+    const positionAndVelocity = satellite.propagate(satrec, time) as unknown as { position: satellite.EciVec3<number> | boolean; velocity: satellite.EciVec3<number> | boolean } | null;
 
-    if (!positionAndVelocity.position || typeof positionAndVelocity.position === 'boolean') {
+    if (!positionAndVelocity || !positionAndVelocity.position || typeof positionAndVelocity.position === 'boolean') {
       return null;
     }
 
@@ -82,7 +82,7 @@ function calculatePosition(
     const gmst = satellite.gstime(time);
 
     // Convert to geodetic coordinates
-    const positionGd = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
+    const positionGd = satellite.eciToGeodetic(positionAndVelocity.position as satellite.EciVec3<number>, gmst);
 
     // Convert radians to degrees
     const lat = satellite.degreesLat(positionGd.latitude);
@@ -92,7 +92,7 @@ function calculatePosition(
     // Calculate velocity magnitude
     let velocity = 0;
     if (positionAndVelocity.velocity && typeof positionAndVelocity.velocity !== 'boolean') {
-      const v = positionAndVelocity.velocity;
+      const v = positionAndVelocity.velocity as satellite.EciVec3<number>;
       velocity = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
     }
 
@@ -155,14 +155,14 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
 
       for (let i = 0; i <= numPoints; i++) {
         const time = new Date(startTime.getTime() + i * stepMs);
-        const positionAndVelocity = satellite.propagate(satrec, time);
+        const positionAndVelocity = satellite.propagate(satrec, time) as unknown as { position: satellite.EciVec3<number> | boolean; velocity: satellite.EciVec3<number> | boolean } | null;
 
-        if (!positionAndVelocity.position || typeof positionAndVelocity.position === 'boolean') {
+        if (!positionAndVelocity || !positionAndVelocity.position || typeof positionAndVelocity.position === 'boolean') {
           continue;
         }
 
         const gmst = satellite.gstime(time);
-        const positionGd = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
+        const positionGd = satellite.eciToGeodetic(positionAndVelocity.position as satellite.EciVec3<number>, gmst);
 
         const lat = satellite.degreesLat(positionGd.latitude);
         const lng = satellite.degreesLong(positionGd.longitude);

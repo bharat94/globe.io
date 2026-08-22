@@ -53,7 +53,7 @@ export const usePopulationData = (): UsePopulationDataReturn => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
-  const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const playbackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const preloadingRef = useRef<Set<number>>(new Set());
 
   // Fetch year range on mount

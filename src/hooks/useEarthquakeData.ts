@@ -40,7 +40,7 @@ export const useEarthquakeData = (): UseEarthquakeDataReturn => {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch earthquakes
   const fetchEarthquakes = useCallback(async () => {

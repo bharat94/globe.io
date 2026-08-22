@@ -122,7 +122,17 @@ const GlobeComponent = () => {
         earthquakeData.setMinMagnitude(urlState.mag);
       }
       if (urlState.days !== undefined) {
-        earthquakeData.setTimeRange(urlState.days);
+        const daysToRange = (d: number): import('./types/earthquake').TimeRange => {
+          if (d <= 1) return 'day';
+          if (d <= 7) return 'week';
+          if (d <= 30) return 'month';
+          return 'day';
+        };
+        // urlState.days is numeric, map to TimeRange; allow string passthrough too
+        const range = typeof urlState.days === 'string'
+          ? (urlState.days as unknown as import('./types/earthquake').TimeRange)
+          : daysToRange(urlState.days);
+        earthquakeData.setTimeRange(range);
       }
       if (urlState.pollutant) {
         pollutionData.setSelectedPollutant(urlState.pollutant as any);

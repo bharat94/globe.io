@@ -7,7 +7,7 @@ import type { DataQuery, HeatmapDataPoint } from '../types';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+(globalThis as unknown as { fetch: typeof fetch }).fetch = mockFetch as unknown as typeof fetch;
 
 describe('WeatherDataSource', () => {
   let dataSource: WeatherDataSource;

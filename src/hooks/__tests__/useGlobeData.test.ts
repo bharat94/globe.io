@@ -7,7 +7,7 @@ import { useGlobeData, getZoomLevel, getResolutionForZoom } from '../useGlobeDat
 
 // Mock fetch globally
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+(globalThis as unknown as { fetch: typeof fetch }).fetch = mockFetch;
 
 describe('useGlobeData', () => {
   beforeEach(() => {

@@ -15,11 +15,8 @@ import type {
 import { WeatherDataSource } from '../datasources/sources/weather/WeatherDataSource';
 
 // Data source registry
-const dataSources = {
+const dataSources: Partial<Record<DataSourceType, () => WeatherDataSource>> = {
   weather: () => new WeatherDataSource(),
-  // Future: earthquakes: () => new EarthquakesDataSource(),
-  // Future: satellites: () => new SatellitesDataSource(),
-  // Future: pollution: () => new PollutionDataSource(),
 };
 
 // Zoom level utilities
@@ -87,8 +84,8 @@ export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn =
   const [currentResolution, setCurrentResolution] = useState(10);
 
   // Refs for timers
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const playIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch metadata on mount
   useEffect(() => {
@@ -170,10 +167,10 @@ export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn =
 
           // Merge data, preferring higher resolution
           const dataMap = new Map<string, HeatmapDataPoint>();
-          globalData.forEach(p => {
+          globalData.forEach((p: HeatmapDataPoint) => {
             dataMap.set(`${p.lat.toFixed(1)},${p.lng.toFixed(1)}`, p);
           });
-          result.forEach(p => {
+          result.forEach((p: HeatmapDataPoint) => {
             dataMap.set(`${p.lat.toFixed(2)},${p.lng.toFixed(2)}`, p);
           });
 
