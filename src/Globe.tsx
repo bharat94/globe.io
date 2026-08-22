@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
-import Globe from 'react-globe.gl';
 import * as THREE from 'three';
 import type { City } from './citiesData';
 import type { ViewType } from './types/views';
@@ -40,6 +39,7 @@ import { API_ENDPOINTS } from './config';
 import { getCountryFlag } from './utils/countryFlag';
 import { useSharedGeometries } from './hooks/useSharedGeometries';
 import { useGlobeLayers } from './hooks/useGlobeLayers';
+import GlobeCanvas from './components/globe/GlobeCanvas';
 
 const GlobeComponent = () => {
   const globeEl = useRef<any>(null);
@@ -583,6 +583,74 @@ const GlobeComponent = () => {
     });
   }, [satelliteData]);
 
+  // Globe interaction handlers — extracted for GlobeCanvas
+  const handleGlobePointClick = useCallback((point: any) => {
+    if (currentView === 'explorer') handleCityClick(point as City);
+    else if (currentView === 'population') handlePopulationClick(point as PopulationDataPoint);
+    else if (currentView === 'earthquakes') handleEarthquakeClick(point as Earthquake);
+  }, [currentView, handleCityClick, handlePopulationClick, handleEarthquakeClick]);
+
+  const handleGlobePointHover = useCallback((point: any) => {
+    if (currentView === 'explorer' || currentView === 'population' || currentView === 'earthquakes') {
+      if (currentView === 'explorer') setHoverCity(point as City | null);
+      const canvas = document.querySelector('canvas');
+      if (canvas) canvas.style.cursor = point ? 'pointer' : 'grab';
+    }
+  }, [currentView]);
+
+  const handleGlobeCustomLayerClick = useCallback((d: any) => {
+    if (currentView === 'satellites') handleSatelliteClick(d as SatellitePosition);
+    else if (currentView === 'flights') handleFlightClick(d as Flight);
+  }, [currentView, handleSatelliteClick, handleFlightClick]);
+
+  const handleGlobeCustomLayerHover = useCallback((d: any) => {
+    const canvas = document.querySelector('canvas');
+    if (canvas) canvas.style.cursor = d ? 'pointer' : 'grab';
+  }, []);
+
+  const handleCustomThreeObjectUpdate = useCallback((obj: THREE.Object3D, d: any) => {
+    if (currentView === 'satellites') {
+      if (globeEl.current && d.lat !== undefined) {
+        const coords = globeEl.current.getCoords(d.lat, d.lng, d.alt);
+        if (coords) obj.position.set(coords.x, coords.y, coords.z);
+      }
+    } else if (currentView === 'flights') {
+      const flight = d as Flight;
+      if (globeEl.current && flight.lat !== undefined) {
+        const altitudeScale = 0.005 + (flight.altitude / 150000);
+        const coords = globeEl.current.getCoords(flight.lat, flight.lng, altitudeScale);
+        if (coords) obj.position.set(coords.x, coords.y, coords.z);
+      }
+      const cone = obj.children.find(c => c instanceof THREE.Mesh && (c as THREE.Mesh).geometry instanceof THREE.ConeGeometry);
+      if (cone) cone.rotation.z = -((flight.heading || 0) * Math.PI / 180);
+      const isDimmed = flightData.selectedFlight && flightData.selectedFlight.icao24 !== flight.icao24;
+      obj.children.forEach(child => {
+        if (child instanceof THREE.Mesh) {
+          const material = child.material as THREE.MeshBasicMaterial;
+          if (child.geometry instanceof THREE.ConeGeometry) material.opacity = isDimmed ? 0.15 : 1;
+          else material.opacity = isDimmed ? 0.05 : 0.2;
+        }
+      });
+    }
+  }, [currentView, flightData.selectedFlight]);
+
+  const handleGlobeClickInternal = useCallback(async (coords: { lat: number; lng: number }) => {
+    if (currentView === 'weather') {
+      const nearest = weatherData.heatmapData.reduce((closest: any, point: any) => {
+        const dist = Math.sqrt(Math.pow(point.lat - coords.lat, 2) + Math.pow(point.lng - coords.lng, 2));
+        if (!closest || dist < closest.dist) return { point, dist };
+        return closest;
+      }, null);
+      if (nearest && nearest.dist < 15) handleWeatherPointClick(nearest.point);
+    } else if (currentView === 'pollution') {
+      const locationData = await pollutionData.getLocationData(coords.lat, coords.lng);
+      if (locationData) {
+        pollutionData.setSelectedLocation(locationData);
+        if (globeEl.current) globeEl.current.pointOfView({ lat: coords.lat, lng: coords.lng, altitude: 2 }, 1000);
+      }
+    }
+  }, [currentView, weatherData, pollutionData, handleWeatherPointClick]);
+
   if (loading) {
     return (
       <div style={{
@@ -698,220 +766,21 @@ const GlobeComponent = () => {
         isSearching={search.isSearching}
       />
 
-      <Globe
-        ref={globeEl}
-        globeImageUrl={isDayMode
-          ? "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-          : "https://unpkg.com/three-globe/example/img/earth-night.jpg"
-        }
-        backgroundImageUrl="https://unpkg.com/three-globe/example/img/night-sky.png"
-        pointsData={globeLayers.pointsData}
-        pointLat="lat"
-        pointLng="lng"
-        pointAltitude={globeLayers.pointAltitude}
-        pointColor={globeLayers.pointColor}
-        pointRadius={globeLayers.pointRadius}
-        labelsData={globeLayers.labelsData}
-        labelLat="lat"
-        labelLng="lng"
-        labelAltitude={0.02}
-        labelText={() => ''}
-        labelSize={0}
-        labelDotRadius={0.5}
-        labelColor={(d: any) => d.color || '#00ffcc'}
-        labelResolution={2}
-        pointLabel={globeLayers.pointLabel}
-        onPointClick={(point: any) => {
-          if (currentView === 'explorer') {
-            handleCityClick(point as City);
-          } else if (currentView === 'population') {
-            handlePopulationClick(point as PopulationDataPoint);
-          } else if (currentView === 'earthquakes') {
-            handleEarthquakeClick(point as Earthquake);
-          }
-        }}
-        onPointHover={(point: any) => {
-          if (currentView === 'explorer' || currentView === 'population' || currentView === 'earthquakes') {
-            if (currentView === 'explorer') {
-              setHoverCity(point as City | null);
-            }
-            // Change cursor to pointer when hovering over a point
-            const canvas = document.querySelector('canvas');
-            if (canvas) {
-              canvas.style.cursor = point ? 'pointer' : 'grab';
-            }
-          }
-        }}
-        atmosphereColor={isDayMode ? "#4d9fff" : "#3a228a"}
-        atmosphereAltitude={0.15}
-        // Transition duration for points (caching helps keep transitions smooth without pointsMerge)
-        pointsTransitionDuration={500}
-        heatmapsData={globeLayers.heatmapsData}
-        heatmapPointLat="lat"
-        heatmapPointLng="lng"
-        heatmapPointWeight="weight"
-        heatmapBandwidth={7}
-        heatmapColorSaturation={0.8}
-        heatmapBaseAltitude={0.005}
-        heatmapTopAltitude={0.02}
-        heatmapsTransitionDuration={1200}
-        pathsData={globeLayers.pathsData}
-        pathPoints="coords"
-        pathPointLat={(p: number[]) => p[1]}
-        pathPointLng={(p: number[]) => p[0]}
-        pathPointAlt={(p: number[]) => p[2] || 0.01}
-        pathColor={(d: any) => d.color}
-        pathStroke={currentView === 'flights' ? 3 : 2}
-        pathDashLength={currentView === 'flights' ? 0 : 0.5}
-        pathDashGap={currentView === 'flights' ? 0 : 0.1}
-        pathDashAnimateTime={currentView === 'flights' ? 0 : 2000}
-        pathTransitionDuration={0}
-        ringsData={globeLayers.ringsData}
-        ringLat="lat"
-        ringLng="lng"
-        ringAltitude={currentView === 'explorer' ? 0.02 : 0.005}
-        ringColor={globeLayers.ringColor}
-        ringMaxRadius={globeLayers.ringMaxRadius}
-        ringPropagationSpeed={globeLayers.ringPropagationSpeed}
-        ringRepeatPeriod={globeLayers.ringRepeatPeriod}
-        customLayerData={globeLayers.customLayerData}
-        customThreeObject={
-          currentView === 'satellites' ? (d: object) => createSatelliteObject(d as SatellitePosition)
-          : currentView === 'flights' ? (d: object) => createAirplaneObject(d as Flight)
-          : undefined
-        }
-        customThreeObjectUpdate={(obj: THREE.Object3D, d: any) => {
-          if (currentView === 'satellites') {
-            // Update position dynamically as satellites move
-            if (globeEl.current && d.lat !== undefined) {
-              const coords = globeEl.current.getCoords(d.lat, d.lng, d.alt);
-              if (coords) {
-                obj.position.set(coords.x, coords.y, coords.z);
-              }
-            }
-          } else if (currentView === 'flights') {
-            // Update position for flights
-            const flight = d as Flight;
-            if (globeEl.current && flight.lat !== undefined) {
-              // Scale altitude for visual prominence:
-              // Ground: 0.005, Cruise (~12000m): ~0.085, High alt: ~0.1
-              const altitudeScale = 0.005 + (flight.altitude / 150000);
-              const coords = globeEl.current.getCoords(flight.lat, flight.lng, altitudeScale);
-              if (coords) {
-                obj.position.set(coords.x, coords.y, coords.z);
-              }
-            }
-            // Update rotation for heading changes
-            const cone = obj.children.find(c => c instanceof THREE.Mesh && (c as THREE.Mesh).geometry instanceof THREE.ConeGeometry);
-            if (cone) {
-              cone.rotation.z = -((flight.heading || 0) * Math.PI / 180);
-            }
-            // Update opacity for selection state
-            const isDimmed = flightData.selectedFlight && flightData.selectedFlight.icao24 !== flight.icao24;
-            obj.children.forEach(child => {
-              if (child instanceof THREE.Mesh) {
-                const material = child.material as THREE.MeshBasicMaterial;
-                if (child.geometry instanceof THREE.ConeGeometry) {
-                  material.opacity = isDimmed ? 0.15 : 1;
-                } else {
-                  material.opacity = isDimmed ? 0.05 : 0.2;
-                }
-              }
-            });
-          }
-        }}
-        customLayerLabel={(d: any) => {
-          if (currentView === 'satellites') {
-            const sat = d as SatellitePosition;
-            return `
-              <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${sat.color}44;">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                  <div style="width: 40px; height: 40px; border-radius: 50%; background: ${sat.color}33; border: 2px solid ${sat.color}; display: flex; align-items: center; justify-content: center;">
-                    <span style="font-size: 18px;">${SATELLITE_CATEGORIES[sat.category]?.icon || '🛰️'}</span>
-                  </div>
-                  <div>
-                    <div style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase;">${SATELLITE_CATEGORIES[sat.category]?.name || 'Satellite'}</div>
-                    <div style="font-size: 14px; font-weight: 600;">${sat.name}</div>
-                  </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.8);">
-                  <div>Alt: ${(sat.alt * EARTH_RADIUS_KM).toFixed(0)} km</div>
-                  <div>Vel: ${sat.velocity.toFixed(1)} km/s</div>
-                  <div>Lat: ${sat.lat.toFixed(2)}°</div>
-                  <div>Lng: ${sat.lng.toFixed(2)}°</div>
-                </div>
-              </div>
-            `;
-          } else if (currentView === 'flights') {
-            const flight = d as Flight;
-            const categoryConfig = FLIGHT_CATEGORIES[flight.category];
-            const color = categoryConfig?.color || flight.color;
-            return `
-              <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${color}44;">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                  <div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}33; border: 2px solid ${color}; display: flex; align-items: center; justify-content: center;">
-                    <span style="font-size: 18px;">${categoryConfig?.icon || '✈️'}</span>
-                  </div>
-                  <div>
-                    <div style="font-size: 16px; font-weight: 700; color: ${color};">${flight.callsign || 'Unknown'}</div>
-                    <div style="font-size: 11px; color: rgba(255,255,255,0.5);">${categoryConfig?.name || 'Aircraft'} • ${flight.originCountry}</div>
-                  </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.8);">
-                  <div>Alt: ${flight.altitudeFt?.toLocaleString() || 0} ft</div>
-                  <div>Speed: ${flight.speedKnots || 0} kts</div>
-                  <div>Heading: ${Math.round(flight.heading || 0)}°</div>
-                  <div>${flight.onGround ? 'On Ground' : 'In Flight'}</div>
-                </div>
-              </div>
-            `;
-          }
-          return '';
-        }}
-        onCustomLayerClick={(d: any) => {
-          if (currentView === 'satellites') {
-            handleSatelliteClick(d as SatellitePosition);
-          } else if (currentView === 'flights') {
-            handleFlightClick(d as Flight);
-          }
-        }}
-        onCustomLayerHover={(d: any) => {
-          const canvas = document.querySelector('canvas');
-          if (canvas) {
-            canvas.style.cursor = d ? 'pointer' : 'grab';
-          }
-        }}
+      <GlobeCanvas
+        globeRef={globeEl}
+        isDayMode={isDayMode}
+        currentView={currentView}
+        layers={globeLayers}
+        cities={cities}
+        onPointClick={handleGlobePointClick}
+        onPointHover={handleGlobePointHover}
+        onCustomLayerClick={handleGlobeCustomLayerClick}
+        onCustomLayerHover={handleGlobeCustomLayerHover}
         onZoom={handleZoom}
-        onGlobeClick={async (coords: { lat: number; lng: number }) => {
-          if (currentView === 'weather') {
-            // Find nearest heatmap point
-            const nearest = weatherData.heatmapData.reduce((closest: any, point: any) => {
-              const dist = Math.sqrt(
-                Math.pow(point.lat - coords.lat, 2) + Math.pow(point.lng - coords.lng, 2)
-              );
-              if (!closest || dist < closest.dist) {
-                return { point, dist };
-              }
-              return closest;
-            }, null);
-            if (nearest && nearest.dist < 15) {
-              handleWeatherPointClick(nearest.point);
-            }
-          } else if (currentView === 'pollution') {
-            // Fetch detailed pollution data for clicked location
-            const locationData = await pollutionData.getLocationData(coords.lat, coords.lng);
-            if (locationData) {
-              pollutionData.setSelectedLocation(locationData);
-              // Animate camera to location
-              if (globeEl.current) {
-                globeEl.current.pointOfView(
-                  { lat: coords.lat, lng: coords.lng, altitude: 2 },
-                  1000
-                );
-              }
-            }
-          }
-        }}
+        onGlobeClick={handleGlobeClickInternal}
+        createSatelliteObject={createSatelliteObject}
+        createAirplaneObject={createAirplaneObject}
+        customThreeObjectUpdate={handleCustomThreeObjectUpdate}
       />
 
       {currentView === 'explorer' && selectedCity && (
