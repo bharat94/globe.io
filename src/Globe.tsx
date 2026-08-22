@@ -451,37 +451,30 @@ const GlobeComponent = () => {
     }
   }, [weatherData]);
 
-  // Create glowing orb for each city marker
-  const createGlowingOrb = useCallback((city: any) => {
-    // Use the color directly from the city data
-    const color = city.color || '#ffffff';
+  // Shared geometries for satellite/airplane objects — reused across instances to prevent GC pressure
+  // NOTE: Geometries are intentionally shared; only Materials are per-instance (to allow per-category colors)
+  const sharedGeometries = useMemo(() => ({
+    satSphere: new THREE.SphereGeometry(0.4, 8, 8),
+    issBody: new THREE.BoxGeometry(3.0, 0.75, 0.75),
+    issPanel: new THREE.BoxGeometry(0.45, 4.5, 0.15),
+    satGlowSmall: new THREE.SphereGeometry(1.0, 16, 16),
+    satGlowISS: new THREE.SphereGeometry(6.0, 16, 16),
+    airplaneCone: (() => {
+      const g = new THREE.ConeGeometry(0.4, 1.2, 4);
+      g.rotateX(Math.PI / 2);
+      return g;
+    })(),
+    airplaneGlow: new THREE.SphereGeometry(0.8, 16, 16),
+  }), []);
 
-    // Main solid orb - using MeshBasicMaterial so color shows without needing lights
-    const orbGeometry = new THREE.SphereGeometry(0.8, 32, 32);
-    const orbMaterial = new THREE.MeshBasicMaterial({
-      color: color  // Use the hex string directly
-    });
-    const orb = new THREE.Mesh(orbGeometry, orbMaterial);
+  // Cleanup shared geometries on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(sharedGeometries).forEach(g => g.dispose());
+    };
+  }, [sharedGeometries]);
 
-    // Add point light inside the orb for glow effect on surroundings
-    const light = new THREE.PointLight(color, 0.6, 5);
-    orb.add(light);
-
-    // Outer glow halo with city color for enhanced glow
-    const glowGeometry = new THREE.SphereGeometry(1.0, 32, 32);
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.BackSide
-    });
-    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-    orb.add(glow);
-
-    return orb;
-  }, []);
-
-  // Create 3D satellite object
+  // Create 3D satellite object — uses shared geometries, per-instance materials
   const createSatelliteObject = useCallback((sat: SatellitePosition) => {
     const group = new THREE.Group();
     const categoryConfig = SATELLITE_CATEGORIES[sat.category];
@@ -491,38 +484,33 @@ const GlobeComponent = () => {
     const isISS = sat.category === 'iss';
     const baseSize = isISS ? 1.5 : 0.4;
 
-    // Main satellite body
+    // Main satellite body — share geometries, clone materials per instance
     if (isISS) {
-      // ISS - larger, distinctive shape
-      const bodyGeometry = new THREE.BoxGeometry(baseSize * 2, baseSize * 0.5, baseSize * 0.5);
       const bodyMaterial = new THREE.MeshBasicMaterial({ color: '#ffffff' });
-      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      const body = new THREE.Mesh(sharedGeometries.issBody, bodyMaterial);
       group.add(body);
 
-      // Solar panels
-      const panelGeometry = new THREE.BoxGeometry(baseSize * 0.3, baseSize * 3, baseSize * 0.1);
       const panelMaterial = new THREE.MeshBasicMaterial({ color: '#4169E1' });
-      const leftPanel = new THREE.Mesh(panelGeometry, panelMaterial);
-      leftPanel.position.set(-baseSize * 0.8, 0, 0);
+      const leftPanel = new THREE.Mesh(sharedGeometries.issPanel, panelMaterial.clone());
+      leftPanel.position.set(-1.2, 0, 0);
       group.add(leftPanel);
-      const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
-      rightPanel.position.set(baseSize * 0.8, 0, 0);
+      const rightPanel = new THREE.Mesh(sharedGeometries.issPanel, panelMaterial.clone());
+      rightPanel.position.set(1.2, 0, 0);
       group.add(rightPanel);
+      // Tag meshes for disposal (materials only — geometries are shared)
+      (group as unknown as { _materials: THREE.Material[] })._materials = [bodyMaterial, panelMaterial];
     } else {
-      // Regular satellite - small glowing sphere
-      const satGeometry = new THREE.SphereGeometry(baseSize, 8, 8);
       const satMaterial = new THREE.MeshBasicMaterial({
         color: color,
         transparent: true,
         opacity: 0.9
       });
-      const satMesh = new THREE.Mesh(satGeometry, satMaterial);
+      const satMesh = new THREE.Mesh(sharedGeometries.satSphere, satMaterial);
       group.add(satMesh);
     }
 
-    // Glow effect
-    const glowSize = isISS ? baseSize * 4 : baseSize * 2.5;
-    const glowGeometry = new THREE.SphereGeometry(glowSize, 16, 16);
+    // Glow effect — shared geometry
+    const glowGeometry = isISS ? sharedGeometries.satGlowISS : sharedGeometries.satGlowSmall;
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: color,
       transparent: true,
@@ -541,47 +529,36 @@ const GlobeComponent = () => {
     return group;
   }, []);
 
-  // Create 3D airplane object for flights
+  // Create 3D airplane object for flights — uses shared geometries
+  // Dimming/heading are handled in customThreeObjectUpdate to avoid recreating objects on selection change
   const createAirplaneObject = useCallback((flight: Flight) => {
     const group = new THREE.Group();
     const categoryConfig = FLIGHT_CATEGORIES[flight.category];
     const color = categoryConfig?.color || flight.color || '#ffffff';
 
-    // Determine if this flight should be dimmed (when another flight is selected)
-    const isDimmed = flightData.selectedFlight &&
-                     flightData.selectedFlight.icao24 !== flight.icao24;
-    const opacity = isDimmed ? 0.15 : 1;
-
-    // Create airplane shape - a cone pointing in direction of travel
-    const coneGeometry = new THREE.ConeGeometry(0.4, 1.2, 4);
-    coneGeometry.rotateX(Math.PI / 2); // Point forward (along Z axis)
-
     const coneMaterial = new THREE.MeshBasicMaterial({
       color: color,
       transparent: true,
-      opacity: opacity
+      opacity: 1
     });
-
-    const cone = new THREE.Mesh(coneGeometry, coneMaterial);
-
-    // Rotate to match heading (heading is clockwise from north)
-    // Convert to radians and negate for counter-clockwise rotation
+    const cone = new THREE.Mesh(sharedGeometries.airplaneCone, coneMaterial);
     cone.rotation.z = -((flight.heading || 0) * Math.PI / 180);
     group.add(cone);
 
-    // Add glow effect
-    const glowGeometry = new THREE.SphereGeometry(0.8, 16, 16);
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: color,
       transparent: true,
-      opacity: isDimmed ? 0.05 : 0.2,
+      opacity: 0.2,
       side: THREE.BackSide
     });
-    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    const glow = new THREE.Mesh(sharedGeometries.airplaneGlow, glowMaterial);
     group.add(glow);
 
+    // Store color for update loop without capturing selectedFlight closure
+    (group.userData as { baseColor: string }).baseColor = color;
+
     return group;
-  }, [flightData.selectedFlight]);
+  }, [sharedGeometries]);
 
   // Handle flight click from custom layer
   const handleFlightClick = useCallback((flight: Flight) => {
