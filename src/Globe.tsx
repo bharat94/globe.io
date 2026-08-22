@@ -36,6 +36,7 @@ import { useAuroraData } from './hooks/useAuroraData';
 import { useFlightData } from './hooks/useFlightData';
 import { useUrlState } from './hooks/useUrlState';
 import { getTemperatureColor } from './utils/weatherUtils';
+import { API_ENDPOINTS } from './config';
 
 // Convert country code to flag emoji
 function getCountryFlag(countryCode: string): string {
@@ -317,7 +318,7 @@ const GlobeComponent = () => {
 
       try {
         // Always fetch cities for markers
-        const response = await fetch('http://localhost:3001/api/cities');
+        const response = await fetch(API_ENDPOINTS.cities);
         if (!response.ok) {
           throw new Error('Failed to fetch cities');
         }

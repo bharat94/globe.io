@@ -6,8 +6,9 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Flight, FlightMetadata, FlightTrack, FlightCategory, FlightRoute } from '../types/flights';
 import { categorizeFlightByCallsign, getCategoryColor } from '../types/flights';
 import { determineFlightRoute } from '../utils/airports';
+import { API_ENDPOINTS } from '../config';
 
-const API_BASE = 'http://localhost:3001/api/flights';
+const API_BASE = API_ENDPOINTS.flights;
 const REFRESH_INTERVAL = 15000; // 15 seconds
 
 interface UseFlightDataReturn {

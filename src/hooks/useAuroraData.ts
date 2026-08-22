@@ -4,8 +4,9 @@
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { AuroraPoint, SpaceWeather, AuroraMetadata } from '../types/aurora';
+import { API_ENDPOINTS } from '../config';
 
-const API_BASE = 'http://localhost:3001/api/aurora';
+const API_BASE = API_ENDPOINTS.aurora;
 const REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
 interface UseAuroraDataReturn {

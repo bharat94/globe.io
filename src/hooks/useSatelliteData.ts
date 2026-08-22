@@ -12,8 +12,9 @@ import type {
   SATELLITE_CATEGORIES
 } from '../types/satellite';
 import { EARTH_RADIUS_KM } from '../types/satellite';
+import { API_ENDPOINTS } from '../config';
 
-const API_BASE = 'http://localhost:3001/api/satellites';
+const API_BASE = API_ENDPOINTS.satellites;
 
 // Time step for animation (seconds per frame at 60fps)
 const TIME_STEP = 1000; // 1 second per frame = ~60x real-time

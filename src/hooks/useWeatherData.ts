@@ -7,11 +7,13 @@ import { useGlobeData, getZoomLevel, getResolutionForZoom } from './useGlobeData
 import type { HeatmapPoint, YearRange, WeatherDataPoint } from '../types/weather';
 import type { Viewport, ZoomLevel } from '../datasources/types';
 
+import { API_ENDPOINTS } from '../config';
+
 // Re-export types and utilities for backwards compatibility
 export { getZoomLevel, getResolutionForZoom };
 export type { Viewport, ZoomLevel };
 
-const API_BASE = 'http://localhost:3001/api/weather';
+const API_BASE = API_ENDPOINTS.weather;
 
 interface UseWeatherDataReturn {
   heatmapData: HeatmapPoint[];

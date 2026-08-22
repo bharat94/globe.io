@@ -4,8 +4,9 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Earthquake, EarthquakeMetadata, TimeRange, EarthquakeDetail } from '../types/earthquake';
+import { API_ENDPOINTS } from '../config';
 
-const API_BASE = 'http://localhost:3001/api/earthquakes';
+const API_BASE = API_ENDPOINTS.earthquakes;
 
 // Auto-refresh interval (5 minutes)
 const REFRESH_INTERVAL = 5 * 60 * 1000;

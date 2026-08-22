@@ -4,8 +4,9 @@
  */
 import { BaseDataSource } from '../BaseDataSource';
 import type { DataQuery, DataSourceMetadata, HeatmapDataPoint } from '../../types';
+import { API_ENDPOINTS } from '../../../config';
 
-const API_BASE = 'http://localhost:3001/api/weather';
+const API_BASE = API_ENDPOINTS.weather;
 
 export class WeatherDataSource extends BaseDataSource<HeatmapDataPoint> {
   constructor() {

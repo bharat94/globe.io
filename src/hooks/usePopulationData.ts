@@ -5,8 +5,9 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PopulationDataPoint, PopulationYearRange, CountryDetailedData } from '../types/population';
+import { API_ENDPOINTS } from '../config';
 
-const API_BASE = 'http://localhost:3001/api/population';
+const API_BASE = API_ENDPOINTS.population;
 
 // In-memory cache for population data by year
 const dataCache = new Map<number, PopulationDataPoint[]>();

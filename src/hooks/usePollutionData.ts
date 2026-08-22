@@ -10,8 +10,9 @@ import type {
   PollutantType
 } from '../types/pollution';
 import { normalizePollutant, getPollutantValue, POLLUTANT_CONFIG } from '../types/pollution';
+import { API_ENDPOINTS } from '../config';
 
-const API_BASE = 'http://localhost:3001/api/pollution';
+const API_BASE = API_ENDPOINTS.pollution;
 
 interface FetchProgress {
   isLoading: boolean;
