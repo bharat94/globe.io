@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import * as THREE from 'three';
 import type { City } from './citiesData';
 import type { ViewType } from './types/views';
@@ -12,18 +12,29 @@ import { FLIGHT_CATEGORIES } from './types/flights';
 import { smoothFlightPath } from './utils/pathSmoothing';
 import { VIEWS } from './types/views';
 import ViewSelector from './components/ViewSelector';
-import TimeSlider from './components/weather/TimeSlider';
-import WeatherPanel from './components/weather/WeatherPanel';
-import WeatherLegend from './components/weather/WeatherLegend';
-import PopulationTimeSlider from './components/population/PopulationTimeSlider';
-import PopulationPanel from './components/population/PopulationPanel';
-import PopulationLegend from './components/population/PopulationLegend';
-import { EarthquakePanel, EarthquakeLegend, EarthquakeControls } from './components/earthquake';
-import { SatellitePanel, SatelliteLegend, SatelliteControls } from './components/satellite';
-import { PollutionPanel, PollutionLegend, PollutionControls } from './components/pollution';
-import { FlightPanel, FlightControls, FlightLegend } from './components/flights';
-import { AuroraPanel, AuroraLegend, AuroraControls } from './components/aurora';
 import { SearchBar } from './components/search';
+// Lazy-load view-specific UI to keep initial bundle lean (2.1 MB → split)
+const TimeSlider = lazy(() => import('./components/weather/TimeSlider'));
+const WeatherPanel = lazy(() => import('./components/weather/WeatherPanel'));
+const WeatherLegend = lazy(() => import('./components/weather/WeatherLegend'));
+const PopulationTimeSlider = lazy(() => import('./components/population/PopulationTimeSlider'));
+const PopulationPanel = lazy(() => import('./components/population/PopulationPanel'));
+const PopulationLegend = lazy(() => import('./components/population/PopulationLegend'));
+const EarthquakePanel = lazy(() => import('./components/earthquake/EarthquakePanel'));
+const EarthquakeLegend = lazy(() => import('./components/earthquake/EarthquakeLegend'));
+const EarthquakeControls = lazy(() => import('./components/earthquake/EarthquakeControls'));
+const SatellitePanel = lazy(() => import('./components/satellite/SatellitePanel'));
+const SatelliteLegend = lazy(() => import('./components/satellite/SatelliteLegend'));
+const SatelliteControls = lazy(() => import('./components/satellite/SatelliteControls'));
+const PollutionPanel = lazy(() => import('./components/pollution/PollutionPanel'));
+const PollutionLegend = lazy(() => import('./components/pollution/PollutionLegend'));
+const PollutionControls = lazy(() => import('./components/pollution/PollutionControls'));
+const FlightPanel = lazy(() => import('./components/flights/FlightPanel'));
+const FlightControls = lazy(() => import('./components/flights/FlightControls'));
+const FlightLegend = lazy(() => import('./components/flights/FlightLegend'));
+const AuroraPanel = lazy(() => import('./components/aurora/AuroraPanel'));
+const AuroraLegend = lazy(() => import('./components/aurora/AuroraLegend'));
+const AuroraControls = lazy(() => import('./components/aurora/AuroraControls'));
 import { useWeatherData } from './hooks/useWeatherData';
 import { useSearch } from './hooks/useSearch';
 import type { SearchResult } from './utils/searchIndex';
@@ -957,6 +968,7 @@ const GlobeComponent = () => {
         </div>
       )}
 
+      <Suspense fallback={null}>
       {/* Weather View UI */}
       {currentView === 'weather' && (
         <>
@@ -1137,6 +1149,7 @@ const GlobeComponent = () => {
           )}
         </>
       )}
+      </Suspense>
 
       {(weatherData.loading || populationData.loading) && (
         <div style={{
