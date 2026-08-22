@@ -39,6 +39,7 @@ import { getTemperatureColor } from './utils/weatherUtils';
 import { API_ENDPOINTS } from './config';
 import { getCountryFlag } from './utils/countryFlag';
 import { useSharedGeometries } from './hooks/useSharedGeometries';
+import { useGlobeLayers } from './hooks/useGlobeLayers';
 
 const GlobeComponent = () => {
   const globeEl = useRef<any>(null);
@@ -440,6 +441,27 @@ const GlobeComponent = () => {
   // Shared geometries for satellite/airplane objects — extracted to hook to keep Globe.tsx lean
   const sharedGeometries = useSharedGeometries();
 
+  // Centralized layer selection — keeps <Globe> prop logic out of JSX
+  const globeLayers = useGlobeLayers({
+    currentView,
+    cities,
+    populationData: populationData.populationData,
+    earthquakes: earthquakeData.earthquakes,
+    weatherHeatmap: weatherData.heatmapData,
+    pollutionHeatmap: pollutionData.heatmapData,
+    auroraHeatmap: auroraData.heatmapData,
+    satellitePositions: satelliteData.positions,
+    filteredFlights: flightData.filteredFlights,
+    showFlightTrail: flightData.showTrail,
+    showSatelliteOrbit: satelliteData.showOrbit,
+    satelliteOrbit: satelliteData.selectedSatelliteOrbit as unknown as { lng: number; lat: number; alt: number }[] | null,
+    smoothedFlightPath,
+    selectedFlightColor: flightData.selectedFlight?.color,
+    satelliteOrbitColor: satelliteData.selectedSatellite
+      ? SATELLITE_CATEGORIES[satelliteData.selectedSatellite.category]?.color
+      : undefined,
+  });
+
   // Create 3D satellite object — uses shared geometries, per-instance materials
   const createSatelliteObject = useCallback((sat: SatellitePosition) => {
     const group = new THREE.Group();
@@ -683,33 +705,13 @@ const GlobeComponent = () => {
           : "https://unpkg.com/three-globe/example/img/earth-night.jpg"
         }
         backgroundImageUrl="https://unpkg.com/three-globe/example/img/night-sky.png"
-        // Show different point data based on view (flights use custom layer instead)
-        pointsData={
-          currentView === 'population'
-            ? populationData.populationData
-            : currentView === 'earthquakes'
-            ? earthquakeData.earthquakes
-            : (currentView === 'explorer' || currentView === 'weather' ? cities : [])
-        }
+        pointsData={globeLayers.pointsData}
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={() =>
-          currentView === 'population' ? 0.01
-          : currentView === 'earthquakes' ? 0.01
-          : (currentView === 'weather' ? 0.05 : 0.02)
-        }
-        pointColor={(d: any) =>
-          currentView === 'population' ? '#4FC3F7'
-          : currentView === 'earthquakes' ? d.color
-          : (d.color || '#ffffff')
-        }
-        pointRadius={(d: any) =>
-          currentView === 'population' ? 0.4 + (d.weight * 2.5)
-          : currentView === 'earthquakes' ? 0.15 + (d.weight * 0.8)
-          : 0.8
-        }
-        // Labels layer for city markers with glowing dots (explorer view)
-        labelsData={currentView === 'explorer' ? cities : []}
+        pointAltitude={globeLayers.pointAltitude}
+        pointColor={globeLayers.pointColor}
+        pointRadius={globeLayers.pointRadius}
+        labelsData={globeLayers.labelsData}
         labelLat="lat"
         labelLng="lng"
         labelAltitude={0.02}
@@ -718,45 +720,7 @@ const GlobeComponent = () => {
         labelDotRadius={0.5}
         labelColor={(d: any) => d.color || '#00ffcc'}
         labelResolution={2}
-        pointLabel={(d: any) =>
-          currentView === 'population' ? `
-            <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
-              <div style="font-size: 24px; margin-bottom: 8px;">${getCountryFlag(d.countryCode)}</div>
-              <b style="font-size: 16px; color: #4FC3F7;">${d.name}</b><br/>
-              <div style="margin-top: 8px; font-size: 14px;">
-                <b>Population:</b> ${d.populationFormatted}<br/>
-                <span style="opacity: 0.7; font-size: 12px;">${d.population?.toLocaleString() || 0} people</span>
-              </div>
-            </div>
-          ` : currentView === 'earthquakes' ? `
-            <div style="background: rgba(0,0,0,0.95); padding: 14px; border-radius: 10px; color: white; max-width: 280px; border: 1px solid ${d.color}44;">
-              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: ${d.color}33; border: 2px solid ${d.color}; display: flex; align-items: center; justify-content: center;">
-                  <span style="font-size: 18px; font-weight: bold; color: ${d.color};">${d.magnitude.toFixed(1)}</span>
-                </div>
-                <div>
-                  <div style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase;">Magnitude</div>
-                  <div style="font-size: 14px; font-weight: 600;">${d.magnitude >= 6 ? 'Strong' : d.magnitude >= 5 ? 'Moderate' : 'Light'}</div>
-                </div>
-              </div>
-              <div style="font-size: 13px; margin-bottom: 8px;">${d.place}</div>
-              <div style="display: flex; gap: 16px; font-size: 12px; color: rgba(255,255,255,0.7);">
-                <span>Depth: ${d.depth.toFixed(1)}km</span>
-                <span>${d.timeAgo}</span>
-              </div>
-              ${d.isRecent ? '<div style="margin-top: 8px; padding: 4px 8px; background: rgba(255,68,68,0.3); border-radius: 4px; font-size: 11px; color: #ff6666; display: inline-block;">Recent Event</div>' : ''}
-            </div>
-          ` : `
-            <div style="background: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px; color: white; max-width: 250px;">
-              <b style="font-size: 16px; color: ${d.color};">${d.name}</b><br/>
-              <span style="font-size: 13px; opacity: 0.8;">${d.country}</span><br/>
-              <div style="margin-top: 8px; font-size: 12px;">
-                <b>Population:</b> ${d.population}<br/>
-                <b>Area:</b> ${d.area}
-              </div>
-            </div>
-          `
-        }
+        pointLabel={globeLayers.pointLabel}
         onPointClick={(point: any) => {
           if (currentView === 'explorer') {
             handleCityClick(point as City);
@@ -782,13 +746,7 @@ const GlobeComponent = () => {
         atmosphereAltitude={0.15}
         // Transition duration for points (caching helps keep transitions smooth without pointsMerge)
         pointsTransitionDuration={500}
-        // Weather/Pollution/Aurora heatmap layers
-        heatmapsData={
-          currentView === 'weather' ? [weatherData.heatmapData]
-          : currentView === 'pollution' ? [pollutionData.heatmapData]
-          : currentView === 'aurora' ? [auroraData.heatmapData]
-          : []
-        }
+        heatmapsData={globeLayers.heatmapsData}
         heatmapPointLat="lat"
         heatmapPointLng="lng"
         heatmapPointWeight="weight"
@@ -797,22 +755,7 @@ const GlobeComponent = () => {
         heatmapBaseAltitude={0.005}
         heatmapTopAltitude={0.02}
         heatmapsTransitionDuration={1200}
-        // Flight trail and satellite orbit paths
-        pathsData={
-          currentView === 'flights' && flightData.showTrail && smoothedFlightPath?.length
-            ? [{
-                coords: smoothedFlightPath,
-                color: flightData.selectedFlight?.color || '#FF9800'
-              }]
-            : currentView === 'satellites' && satelliteData.showOrbit && satelliteData.selectedSatelliteOrbit?.length
-            ? [{
-                coords: satelliteData.selectedSatelliteOrbit.map(p => [p.lng, p.lat, p.alt]),
-                color: satelliteData.selectedSatellite
-                  ? SATELLITE_CATEGORIES[satelliteData.selectedSatellite.category]?.color || '#9C27B0'
-                  : '#9C27B0'
-              }]
-            : []
-        }
+        pathsData={globeLayers.pathsData}
         pathPoints="coords"
         pathPointLat={(p: number[]) => p[1]}
         pathPointLng={(p: number[]) => p[0]}
@@ -823,28 +766,15 @@ const GlobeComponent = () => {
         pathDashGap={currentView === 'flights' ? 0 : 0.1}
         pathDashAnimateTime={currentView === 'flights' ? 0 : 2000}
         pathTransitionDuration={0}
-        // Combined rings: city markers (explorer) + earthquake rings
-        ringsData={currentView === 'explorer' ? cities : currentView === 'earthquakes' ? earthquakeData.earthquakes : []}
+        ringsData={globeLayers.ringsData}
         ringLat="lat"
         ringLng="lng"
         ringAltitude={currentView === 'explorer' ? 0.02 : 0.005}
-        ringColor={(d: any) => {
-          if (currentView === 'explorer') return d.color || '#00ffcc';
-          const baseColor = d.color || '#ff4444';
-          return [`${baseColor}cc`, `${baseColor}00`];
-        }}
-        ringMaxRadius={(d: any) => {
-          if (currentView === 'explorer') return 0.5;
-          return 3 + (d.magnitude - 2.5) * 2;
-        }}
-        ringPropagationSpeed={currentView === 'explorer' ? 0 : (d: any) => 2 + (d.magnitude - 2.5) * 0.8}
-        ringRepeatPeriod={currentView === 'explorer' ? 0 : (d: any) => d.isRecent ? 600 : 1200}
-        // Custom 3D layer for satellites and flights
-        customLayerData={
-          currentView === 'satellites' ? satelliteData.positions
-          : currentView === 'flights' ? flightData.filteredFlights
-          : []
-        }
+        ringColor={globeLayers.ringColor}
+        ringMaxRadius={globeLayers.ringMaxRadius}
+        ringPropagationSpeed={globeLayers.ringPropagationSpeed}
+        ringRepeatPeriod={globeLayers.ringRepeatPeriod}
+        customLayerData={globeLayers.customLayerData}
         customThreeObject={
           currentView === 'satellites' ? (d: object) => createSatelliteObject(d as SatellitePosition)
           : currentView === 'flights' ? (d: object) => createAirplaneObject(d as Flight)
