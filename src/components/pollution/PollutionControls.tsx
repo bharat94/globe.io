@@ -145,13 +145,16 @@ const PollutionControls: React.FC<PollutionControlsProps> = ({
         background: 'rgba(255, 255, 255, 0.2)'
       }} />
 
-      {/* Data points count */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <div>
-          <div style={{ fontSize: '12px', fontWeight: '500' }}>
-            {metadata?.totalPoints || 0} points
-          </div>
+      {/* Data points count + last updated */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
+        <div style={{ fontSize: '12px', fontWeight: '500' }}>
+          {metadata?.totalPoints || 0} points
         </div>
+        {lastUpdated && (
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+            Updated {formatTime(lastUpdated)}
+          </div>
+        )}
       </div>
 
       {/* Divider */}

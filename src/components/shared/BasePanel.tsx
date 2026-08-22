@@ -47,15 +47,19 @@ const BasePanel: React.FC<BasePanelProps> = ({
 
   const closeButtonStyle: React.CSSProperties = {
     position: 'absolute',
-    top: '16px',
-    right: '16px',
+    top: '12px',
+    right: '12px',
     background: 'transparent',
     border: 'none',
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: '20px',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: '18px',
     cursor: 'pointer',
-    padding: '4px 8px',
-    borderRadius: '4px',
+    width: '44px',
+    height: '44px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '8px',
     transition: 'all 0.2s'
   };
 
@@ -72,21 +76,38 @@ const BasePanel: React.FC<BasePanelProps> = ({
   };
 
   return (
-    <div style={containerStyle}>
+    <div style={containerStyle} role="dialog" aria-modal="true" aria-label={title} className="base-panel">
       <button
         style={closeButtonStyle}
         onClick={onClose}
+        aria-label={`Close ${title} panel`}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = 'white';
           e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
+          e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
           e.currentTarget.style.background = 'transparent';
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
         }}
       >
         &#10005;
       </button>
+      <style>{`
+        @media (max-width: 640px) {
+          .base-panel {
+            left: 10px !important;
+            right: 10px !important;
+            width: auto !important;
+            top: auto !important;
+            bottom: 70px !important;
+            max-height: 50vh !important;
+            border-radius: 16px !important;
+          }
+        }
+      `}</style>
 
       <div style={headerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

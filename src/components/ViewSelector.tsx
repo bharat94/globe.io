@@ -18,7 +18,7 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
   // Mobile layout: horizontal bar at bottom
   if (isMobile) {
     return (
-      <div style={{
+      <div role="navigation" aria-label="View selector" style={{
         position: 'absolute',
         bottom: '0',
         left: '0',
@@ -38,20 +38,25 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
           margin: '0 auto',
         }}>
           {views.filter(v => v.enabled).map((view) => (
-            <div
+            <button
               key={view.id}
               onClick={() => onViewChange(view.id)}
+              aria-label={`Switch to ${view.name} view`}
+              aria-current={currentView === view.id ? 'page' : undefined}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 cursor: 'pointer',
-                padding: '4px 8px',
+                padding: '6px 12px',
                 borderRadius: '8px',
+                border: 'none',
                 background: currentView === view.id
                   ? 'rgba(255, 255, 255, 0.15)'
                   : 'transparent',
                 transition: 'all 0.2s',
+                minWidth: '44px',
+                minHeight: '44px',
               }}
             >
               <div style={{
@@ -69,7 +74,7 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
               }}>
                 {view.name}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -78,7 +83,7 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
 
   // Desktop layout: vertical sidebar
   return (
-    <div style={{
+    <div role="navigation" aria-label="View selector" style={{
       position: 'absolute',
       left: '20px',
       top: '50%',
@@ -108,15 +113,29 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
           className="view-list"
         >
       {views.map((view) => (
-        <div
+        <button
           key={view.id}
           onClick={() => view.enabled && onViewChange(view.id)}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && view.enabled) {
+              e.preventDefault();
+              onViewChange(view.id);
+            }
+          }}
+          aria-label={`${view.name}: ${view.description}`}
+          aria-current={currentView === view.id ? 'page' : undefined}
+          disabled={!view.enabled}
           style={{
             cursor: view.enabled ? 'pointer' : 'not-allowed',
             opacity: view.enabled ? 1 : 0.4,
             transition: 'all 0.3s',
             position: 'relative',
             flexShrink: 0,
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            minWidth: '60px',
+            minHeight: '60px',
           }}
           title={view.description}
         >
@@ -175,8 +194,8 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
           >
             {view.name}
           </div>
-        </div>
-      ))}
+          </button>
+        ))}
         </div>
       </div>
 
