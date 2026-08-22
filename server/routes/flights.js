@@ -239,7 +239,18 @@ router.get('/:icao24/track', async (req, res) => {
       timestamp: now
     });
 
-    // Clean old cache entries
+    // Enforce max size (LRU) and TTL eviction
+    const MAX_TRACK_CACHE_SIZE = 200;
+    if (trackCache.size > MAX_TRACK_CACHE_SIZE) {
+      // Delete oldest entries (Map preserves insertion order)
+      const toDelete = trackCache.size - MAX_TRACK_CACHE_SIZE;
+      let deleted = 0;
+      for (const key of trackCache.keys()) {
+        if (deleted >= toDelete) break;
+        trackCache.delete(key);
+        deleted++;
+      }
+    }
     for (const [key, value] of trackCache.entries()) {
       if (now - value.timestamp > TRACK_CACHE_TTL * 10) {
         trackCache.delete(key);

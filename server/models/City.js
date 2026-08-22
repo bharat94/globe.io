@@ -92,8 +92,7 @@ const citySchema = new mongoose.Schema({
 });
 
 // Create indexes for common queries
-citySchema.index({ name: 1 });
+// Note: name already has unique:true index, location.coordinates has 2dsphere — don't duplicate
 citySchema.index({ country: 1 });
-citySchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model('City', citySchema);

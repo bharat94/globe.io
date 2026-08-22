@@ -58,7 +58,7 @@ const populationDataSchema = new mongoose.Schema({
 });
 
 // Compound index for efficient queries
+// Note: year already has index:true, no need to duplicate; countryCode+year unique for upsert
 populationDataSchema.index({ countryCode: 1, year: 1 }, { unique: true });
-populationDataSchema.index({ year: 1 });
 
 module.exports = mongoose.model('PopulationData', populationDataSchema);
