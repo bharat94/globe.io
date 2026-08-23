@@ -63,12 +63,12 @@ export function useGlobeLayers(opts: UseGlobeLayersOptions) {
   const labelsData = useMemo(() => (currentView === 'explorer' ? cities : []), [currentView, cities]);
 
   // Rings — explorer city rings + earthquake seismic waves
-  // Cap earthquake rings to avoid GPU buffer overflow (413+ quakes → GL_INVALID_OPERATION)
+  // Cap earthquake rings to avoid GPU buffer overflow (GL_INVALID_OPERATION on large instanced buffers)
   const ringsData = useMemo(() => {
     if (currentView === 'explorer') return cities;
     if (currentView === 'earthquakes') {
-      // Limit to most recent 100 to keep instanced buffer manageable
-      return earthquakes.length > 150 ? earthquakes.slice(0, 100) : earthquakes;
+      // Cap at 100 to keep instanced buffer manageable regardless of count
+      return earthquakes.length > 100 ? earthquakes.slice(0, 100) : earthquakes;
     }
     return [];
   }, [currentView, cities, earthquakes]);

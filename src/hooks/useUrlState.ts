@@ -15,7 +15,7 @@ export interface UrlState {
   month?: number;
   // Earthquake params
   mag?: number;
-  days?: number;
+  days?: string;
   // Pollution params
   pollutant?: string;
 }
@@ -47,7 +47,7 @@ export const useUrlState = () => {
       year: parseInt10(params.get('year')),
       month: parseInt10(params.get('month')),
       mag: parseNumber(params.get('mag')),
-      days: parseInt10(params.get('days')),
+      days: params.get('days') || undefined,
       pollutant: params.get('pollutant') || undefined,
     };
   }, []);

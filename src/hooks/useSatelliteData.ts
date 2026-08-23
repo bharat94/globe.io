@@ -288,7 +288,8 @@ export const useSatelliteData = (): UseSatelliteDataReturn => {
     } else {
       setSelectedSatelliteOrbit(null);
     }
-  }, [selectedSatellite?.id, showOrbit, calculateOrbitPath]); // Only recalculate on satellite change, not on time change
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedSatellite orbit tied to id only; currentTime would cause 60fps recompute
+  }, [selectedSatellite?.id, showOrbit, calculateOrbitPath]);
 
   return {
     satellites,

@@ -16,14 +16,22 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
 
   // Restore scroll position after mount
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && scrollRef.current) {
-      scrollRef.current.scrollTop = parseInt(saved, 10);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && scrollRef.current) {
+        scrollRef.current.scrollTop = parseInt(saved, 10);
+      }
+    } catch {
+      // ignore private-mode storage errors
     }
   }, []);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    localStorage.setItem(STORAGE_KEY, String(e.currentTarget.scrollTop));
+    try {
+      localStorage.setItem(STORAGE_KEY, String(e.currentTarget.scrollTop));
+    } catch {
+      // ignore private-mode storage errors
+    }
   };
 
   // Ensure all enabled views are visible without scrolling when possible.

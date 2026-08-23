@@ -124,12 +124,20 @@ const GlobeComponent = () => {
         earthquakeData.setMinMagnitude(urlState.mag);
       }
       if (urlState.days !== undefined) {
-        // Convert numeric days to TimeRange (handles urlState.days as number)
-        const days = urlState.days as unknown as number;
-        if (days <= 1) earthquakeData.setTimeRange('hour');
-        else if (days <= 7) earthquakeData.setTimeRange('day');
-        else if (days <= 30) earthquakeData.setTimeRange('week');
-        else earthquakeData.setTimeRange('month');
+        const raw = String(urlState.days).trim().toLowerCase();
+        // Direct TimeRange string (hour/day/week/month) – new format
+        if (['hour', 'day', 'week', 'month'].includes(raw)) {
+          earthquakeData.setTimeRange(raw as any);
+        } else {
+          // Legacy numeric days fallback
+          const daysNum = parseInt(raw, 10);
+          if (!isNaN(daysNum)) {
+            if (daysNum <= 1) earthquakeData.setTimeRange('hour');
+            else if (daysNum <= 7) earthquakeData.setTimeRange('day');
+            else if (daysNum <= 30) earthquakeData.setTimeRange('week');
+            else earthquakeData.setTimeRange('month');
+          }
+        }
       }
       if (urlState.pollutant) {
         pollutionData.setSelectedPollutant(urlState.pollutant as any);
@@ -151,10 +159,10 @@ const GlobeComponent = () => {
     }
     isInitialMount.current = false;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [getStateFromUrl, hasUrlState]);
 
   // Update URL when state changes (debounced)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   useEffect(() => {
     if (isInitialMount.current) return;
 
@@ -210,14 +218,16 @@ const GlobeComponent = () => {
   ]);
 
   // Update search index when data changes
-  // Note: Using static satellite positions (calculated once) instead of animated positions to avoid 60fps updates
+  // Use satellites with positions; rebuild when positions populate to make ISS searchable after TLE propagation
   const staticSatellitePositions = useMemo(() => {
     if (satelliteData.satellites.length === 0) return [];
+    // Include positions when available; fallback to 0,0 filtered out until first propagation completes
     return satelliteData.satellites.map(sat => {
       const pos = satelliteData.positions.find(p => p.id === sat.id);
       return pos || { id: sat.id, name: sat.name, category: sat.category, lat: 0, lng: 0, alt: 0, velocity: 0, color: '' };
     }).filter(p => p.lat !== 0 || p.lng !== 0);
-  }, [satelliteData.satellites]); // Only recalculate when satellites list changes, not on every position update
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [satelliteData.satellites, satelliteData.positions.length]);
 
   // Memoize smoothed flight path to avoid recalculation on every render
   const smoothedFlightPath = useMemo(() => {
@@ -234,7 +244,7 @@ const GlobeComponent = () => {
       earthquakes: earthquakeData.earthquakes,
       satellites: staticSatellitePositions
     });
-  }, [cities, earthquakeData.earthquakes, staticSatellitePositions, search.updateData]);
+  }, [cities, earthquakeData.earthquakes, staticSatellitePositions, search]);
 
   // Handle search result selection
   const handleSearchSelect = useCallback((result: SearchResult) => {
@@ -323,6 +333,10 @@ const GlobeComponent = () => {
       setSelectedCity(null); // Clear selected city when switching views
       setSelectedWeatherLocation(null); // Clear weather selection
       setSelectedCountry(null); // Clear population selection
+      earthquakeData.setSelectedEarthquake(null);
+      satelliteData.setSelectedSatellite(null);
+      flightData.setSelectedFlight(null);
+      pollutionData.setSelectedLocation(null);
 
       try {
         // Always fetch cities for markers
@@ -379,9 +393,10 @@ const GlobeComponent = () => {
     };
 
     fetchViewData();
-  }, [currentView]); // Re-fetch when view changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentView]);
 
-  const handleCityClick = (city: City) => {
+  const handleCityClick = useCallback((city: City) => {
     setSelectedCity(city);
     setShowLearnMore(false); // Reset Learn More when selecting a new city
 
@@ -391,7 +406,7 @@ const GlobeComponent = () => {
         1000
       );
     }
-  };
+  }, []);
 
   const handleViewChange = (view: ViewType) => {
     setCurrentView(view);
@@ -525,7 +540,7 @@ const GlobeComponent = () => {
     }
 
     return group;
-  }, []);
+  }, [sharedGeometries]);
 
   // Create 3D airplane object for flights — uses shared geometries
   // Dimming/heading are handled in customThreeObjectUpdate to avoid recreating objects on selection change
@@ -563,14 +578,15 @@ const GlobeComponent = () => {
     flightData.setSelectedFlight(flight);
   }, [flightData]);
 
-  // Toggle flight category
+  // Toggle flight category — clear trail if selected flight's category hidden
   const handleToggleFlightCategory = useCallback((category: FlightCategory) => {
     flightData.setSelectedCategories((prev: FlightCategory[]) => {
-      if (prev.includes(category)) {
-        return prev.filter((c: FlightCategory) => c !== category);
-      } else {
-        return [...prev, category];
+      const next = prev.includes(category) ? prev.filter((c: FlightCategory) => c !== category) : [...prev, category];
+      if (flightData.selectedFlight && !next.includes(flightData.selectedFlight.category)) {
+        flightData.setSelectedFlight(null);
+        flightData.setShowTrail(false);
       }
+      return next;
     });
   }, [flightData]);
 
@@ -582,14 +598,16 @@ const GlobeComponent = () => {
     }
   }, [satelliteData]);
 
-  // Toggle satellite category
+  // Toggle satellite category — clear selection/orbit if its category is hidden
   const handleToggleSatelliteCategory = useCallback((category: SatelliteCategory) => {
     satelliteData.setSelectedCategories((prev: SatelliteCategory[]) => {
-      if (prev.includes(category)) {
-        return prev.filter((c: SatelliteCategory) => c !== category);
-      } else {
-        return [...prev, category];
+      const next = prev.includes(category) ? prev.filter((c: SatelliteCategory) => c !== category) : [...prev, category];
+      // If selected satellite's category is now hidden, deselect it and hide orbit
+      if (satelliteData.selectedSatellite?.category === category && !next.includes(category)) {
+        satelliteData.setSelectedSatellite(null);
+        satelliteData.setShowOrbit(false);
       }
+      return next;
     });
   }, [satelliteData]);
 

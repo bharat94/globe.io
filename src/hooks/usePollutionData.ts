@@ -147,7 +147,10 @@ export const usePollutionData = (): UsePollutionDataReturn => {
   // Initial fetch
   useEffect(() => {
     fetchPollutionGrid();
-  }, [fetchPollutionGrid]);
+    return () => {
+      stopProgressPolling();
+    };
+  }, [fetchPollutionGrid, stopProgressPolling]);
 
   // Get detailed data for a specific location
   const getLocationData = useCallback(async (lat: number, lng: number): Promise<PollutionLocationData | null> => {

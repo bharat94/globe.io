@@ -193,7 +193,7 @@ export const useGlobeData = (options: UseGlobeDataOptions): UseGlobeDataReturn =
     };
 
     fetchData();
-  }, [selectedYear, selectedMonth, viewport, sourceType]);
+  }, [selectedYear, selectedMonth, viewport, sourceType, getViewportBounds, data.length]);
 
   // Debounced viewport setter
   const setViewport = useCallback((newViewport: Viewport) => {
