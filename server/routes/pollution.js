@@ -68,14 +68,19 @@ function normalizeAQI(aqi) {
 }
 
 /**
- * Fetch air quality data for a single location
+ * Fetch air quality data for a single location with retry on 429
  */
-async function fetchLocationData(lat, lng) {
+async function fetchLocationData(lat, lng, retries = 1) {
   const url = `${API_BASE}?latitude=${lat}&longitude=${lng}&current=us_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,dust,uv_index`;
 
   try {
     const response = await fetch(url);
     if (!response.ok) {
+      if (response.status === 429 && retries > 0) {
+        // Rate limited — wait 1.2s and retry once
+        await new Promise(r => setTimeout(r, 1200));
+        return fetchLocationData(lat, lng, retries - 1);
+      }
       throw new Error(`Open-Meteo returned ${response.status}`);
     }
 
@@ -152,9 +157,9 @@ async function fetchGlobalGrid(resolution = 10) {
   fetchProgress.startTime = Date.now();
 
   // Fetch in batches to avoid overwhelming the API
-  // Open-Meteo has rate limits, so we use small batches with delays
-  const BATCH_SIZE = 5;
-  const BATCH_DELAY = 500; // 500ms between batches
+  // Tuned for Open-Meteo rate limits: 10 concurrent max, moderate delay
+  const BATCH_SIZE = 10;
+  const BATCH_DELAY = 250; // 250ms between batches
   const results = [];
 
   for (let i = 0; i < gridPoints.length; i += BATCH_SIZE) {
@@ -206,6 +211,10 @@ router.get('/grid', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch pollution data' });
   }
 });
+
+// Export helpers for pre-warming and testing
+router.fetchGlobalGrid = fetchGlobalGrid;
+router.cache = cache;
 
 /**
  * GET /api/pollution/location

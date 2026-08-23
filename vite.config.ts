@@ -10,4 +10,16 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
   },
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+          globe: ['react-globe.gl'],
+          satellite: ['satellite.js'],
+        },
+      },
+    },
+  },
 })

@@ -69,16 +69,18 @@ const GlobeCanvas = memo(({
       onPointHover={onPointHover}
       atmosphereColor={isDayMode ? "#4d9fff" : "#3a228a"}
       atmosphereAltitude={0.15}
-      pointsTransitionDuration={500}
+      // Transition durations set to 0 to avoid transform-feedback buffer overflow
+      // (GL_INVALID_OPERATION: glDrawArraysInstanced) on large datasets
+      pointsTransitionDuration={0}
       heatmapsData={layers.heatmapsData as any}
       heatmapPointLat="lat"
       heatmapPointLng="lng"
       heatmapPointWeight="weight"
-      heatmapBandwidth={7}
+      heatmapBandwidth={5}
       heatmapColorSaturation={0.8}
       heatmapBaseAltitude={0.005}
       heatmapTopAltitude={0.02}
-      heatmapsTransitionDuration={1200}
+      heatmapsTransitionDuration={0}
       pathsData={layers.pathsData as any}
       pathPoints="coords"
       pathPointLat={(p: number[]) => p[1]}

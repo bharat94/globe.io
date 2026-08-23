@@ -3,12 +3,10 @@ import { SATELLITE_CATEGORIES, EARTH_RADIUS_KM } from '../types/satellite';
 import { getCountryFlag } from '../utils/countryFlag';
 import type { City } from '../citiesData';
 import type { ViewType } from '../types/views';
-import type { WeatherDataPoint } from '../types/weather';
 import type { PopulationDataPoint } from '../types/population';
 import type { Earthquake } from '../types/earthquake';
 import type { SatellitePosition } from '../types/satellite';
 import type { Flight } from '../types/flights';
-import { smoothFlightPath } from '../utils/pathSmoothing';
 
 interface UseGlobeLayersOptions {
   currentView: ViewType;
@@ -65,9 +63,13 @@ export function useGlobeLayers(opts: UseGlobeLayersOptions) {
   const labelsData = useMemo(() => (currentView === 'explorer' ? cities : []), [currentView, cities]);
 
   // Rings — explorer city rings + earthquake seismic waves
+  // Cap earthquake rings to avoid GPU buffer overflow (413+ quakes → GL_INVALID_OPERATION)
   const ringsData = useMemo(() => {
     if (currentView === 'explorer') return cities;
-    if (currentView === 'earthquakes') return earthquakes;
+    if (currentView === 'earthquakes') {
+      // Limit to most recent 100 to keep instanced buffer manageable
+      return earthquakes.length > 150 ? earthquakes.slice(0, 100) : earthquakes;
+    }
     return [];
   }, [currentView, cities, earthquakes]);
 

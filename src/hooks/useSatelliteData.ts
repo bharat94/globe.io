@@ -9,15 +9,11 @@ import type {
   SatellitePosition,
   SatelliteCategory,
   SatelliteMetadata,
-  SATELLITE_CATEGORIES
 } from '../types/satellite';
 import { EARTH_RADIUS_KM } from '../types/satellite';
 import { API_ENDPOINTS } from '../config';
 
 const API_BASE = API_ENDPOINTS.satellites;
-
-// Time step for animation (seconds per frame at 60fps)
-const TIME_STEP = 1000; // 1 second per frame = ~60x real-time
 
 // Orbit path point
 interface OrbitPoint {
@@ -106,7 +102,7 @@ function calculatePosition(
       velocity,
       color: getCategoryColor(sat.category)
     };
-  } catch (error) {
+  } catch {
     // TLE might be stale or invalid
     return null;
   }

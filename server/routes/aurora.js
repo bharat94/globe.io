@@ -121,11 +121,55 @@ router.get('/weather', async (req, res) => {
 
     const data = await response.json();
 
-    // NOAA format: array of [timestamp, kp_value, kp_type, observed_or_predicted]
-    // First row is headers, data starts from index 1
-    const latestKp = data.length > 1 ? data[data.length - 1] : null;
-
-    const kpValue = latestKp ? parseFloat(latestKp[1]) : 0;
+    // NOAA format historically was array of arrays [timestamp, kp_value, ...] with header row.
+    // Current API returns array of objects {time_tag, Kp, ...}. Handle both.
+    let latestKp = null;
+    let kpValue = 0;
+    if (Array.isArray(data) && data.length > 1) {
+      // Detect format: object array vs array-of-arrays
+      const isObjectFormat = typeof data[1] === 'object' && !Array.isArray(data[1]) && 'Kp' in data[1];
+      if (isObjectFormat) {
+        // Object format: find last valid Kp
+        for (let i = data.length - 1; i >= 0; i--) {
+          const row = data[i];
+          if (!row || row.Kp === undefined || row.Kp === null) continue;
+          const v = parseFloat(row.Kp);
+          if (!isNaN(v)) {
+            latestKp = [row.time_tag, String(row.Kp)];
+            kpValue = v;
+            break;
+          }
+        }
+      } else {
+        // Legacy array format: array of [timestamp, kp_value, kp_type, observed_or_predicted]
+        // First row is headers, data starts from index 1. Find last valid numeric Kp.
+        for (let i = data.length - 1; i >= 1; i--) {
+          const row = data[i];
+          if (!row || row.length < 2) continue;
+          if (String(row[0]).toLowerCase().includes('time_tag')) continue;
+          const v = parseFloat(row[1]);
+          if (!isNaN(v)) {
+            latestKp = row;
+            kpValue = v;
+            break;
+          }
+        }
+        if (!latestKp && data.length > 1) {
+          for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            const v = parseFloat(row?.[1]);
+            if (!isNaN(v)) {
+              latestKp = row;
+              kpValue = v;
+              break;
+            }
+          }
+        }
+      }
+    }
+    if (!latestKp) {
+      console.warn('Aurora: No valid Kp value found, data rows:', data?.length);
+    }
 
     // Determine aurora visibility forecast based on Kp
     let forecast = 'Low';
@@ -149,14 +193,14 @@ router.get('/weather', async (req, res) => {
     }
 
     const result = {
-      kpIndex: kpValue,
+      kpIndex: latestKp ? kpValue : null,
       kpTimestamp: latestKp ? latestKp[0] : null,
-      forecast,
-      viewingLatitude,
+      forecast: latestKp ? forecast : 'Unknown',
+      viewingLatitude: latestKp ? viewingLatitude : 'N/A',
       // Kp scale description
       scale: {
-        value: kpValue,
-        description: getKpDescription(kpValue)
+        value: latestKp ? kpValue : null,
+        description: latestKp ? getKpDescription(kpValue) : 'Data unavailable'
       },
       metadata: {
         source: 'NOAA SWPC',

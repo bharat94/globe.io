@@ -129,7 +129,6 @@ export function buildSearchIndex(data: {
   // Index satellites
   data.satellites.forEach(sat => {
     const satPos = sat as SatellitePosition;
-    const satBase = sat as Satellite;
 
     // Skip satellites without position data
     if (satPos.lat === undefined || satPos.lng === undefined) return;

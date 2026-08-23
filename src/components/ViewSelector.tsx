@@ -26,11 +26,22 @@ const ViewSelector = ({ views, currentView, onViewChange }: ViewSelectorProps) =
     localStorage.setItem(STORAGE_KEY, String(e.currentTarget.scrollTop));
   };
 
-  // Show 4.5 items to hint there's more content
-  // Each item: 60px height, gap: 16px
-  // 4 full items + half of 5th = (4 * 60) + (4 * 16) + 30 = 240 + 64 + 30 = 334px
-  // Increased by 50% to 501px
-  const scrollableHeight = 501;
+  // Ensure all enabled views are visible without scrolling when possible.
+  // Each item: 60px height, gap: 16px. For N items: N*60 + (N-1)*16.
+  // Cap at ~70vh to avoid overflow on small screens.
+  const enabledCount = views.filter(v => v.enabled).length;
+  const idealHeight = enabledCount * 60 + Math.max(0, enabledCount - 1) * 16;
+  const scrollableHeight = Math.min(idealHeight, 600);
+
+  // Keep selected view visible when currentView changes
+  useEffect(() => {
+    if (scrollRef.current) {
+      const active = scrollRef.current.querySelector('[aria-current="page"]') as HTMLElement | null;
+      if (active) {
+        active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }, [currentView]);
 
   // Mobile layout: horizontal bar at bottom
   if (isMobile) {

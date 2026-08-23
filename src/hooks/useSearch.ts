@@ -2,7 +2,7 @@
  * Search Hook
  * Manages search state, indexing, and result filtering
  */
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { City } from '../citiesData';
 import type { Earthquake } from '../types/earthquake';
 import type { SatellitePosition } from '../types/satellite';
@@ -11,7 +11,6 @@ import {
   searchIndex,
   type SearchIndex,
   type SearchResult,
-  type SearchResultType
 } from '../utils/searchIndex';
 
 interface UseSearchOptions {

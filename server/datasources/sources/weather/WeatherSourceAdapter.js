@@ -51,6 +51,7 @@ class WeatherSourceAdapter {
 
   /**
    * Get combined metadata from both sources
+   * Returns the broadest range covering both static precomputed and dynamic API data.
    */
   async getMetadata() {
     const [staticMeta, dynamicMeta] = await Promise.all([
@@ -58,9 +59,17 @@ class WeatherSourceAdapter {
       this.dynamicSource.getMetadata()
     ]);
 
+    // Combine ranges: use widest span from both sources
+    let minYear = dynamicMeta.minYear;
+    let maxYear = dynamicMeta.maxYear;
+    if (staticMeta) {
+      minYear = Math.min(staticMeta.minYear, dynamicMeta.minYear);
+      maxYear = Math.max(staticMeta.maxYear, dynamicMeta.maxYear);
+    }
+
     return {
-      minYear: staticMeta?.minYear || dynamicMeta.minYear,
-      maxYear: staticMeta?.maxYear || dynamicMeta.maxYear,
+      minYear,
+      maxYear,
       supportedResolutions: this.supportedResolutions,
       sources: {
         static: {

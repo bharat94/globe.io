@@ -2,7 +2,7 @@
  * URL State Hook
  * Syncs application state with URL parameters for deep linking
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import type { ViewType } from '../types/views';
 
 export interface UrlState {

@@ -68,6 +68,20 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Database: ${MONGODB_URI}`);
+
+  // Pre-warm pollution cache in background (non-blocking) to avoid 50s cold start on first client
+  setTimeout(async () => {
+    try {
+      const pollutionRouter = require('./routes/pollution');
+      if (pollutionRouter.fetchGlobalGrid) {
+        console.log('🌫️ Pre-warming pollution cache...');
+        await pollutionRouter.fetchGlobalGrid(10);
+        console.log('🌫️ Pollution cache pre-warmed');
+      }
+    } catch (e) {
+      console.warn('Pollution pre-warm failed:', e.message);
+    }
+  }, 2000);
 });
 
 // Graceful shutdown

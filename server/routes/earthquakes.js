@@ -12,7 +12,8 @@ const USGS_API = 'https://earthquake.usgs.gov/fdsnws/event/1/query';
 let cache = {
   data: null,
   timestamp: 0,
-  timeRange: null
+  timeRange: null,
+  minMagnitude: null
 };
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -28,10 +29,10 @@ router.get('/', async (req, res) => {
     const range = req.query.range || 'day';
     const minMagnitude = parseFloat(req.query.minmagnitude) || 2.5;
 
-    // Check cache
+    // Check cache — include minMagnitude in key so mag filter busts cache
     const now = Date.now();
-    if (cache.data && cache.timeRange === range && (now - cache.timestamp) < CACHE_TTL) {
-      console.log(`Earthquakes: serving cached data (${range})`);
+    if (cache.data && cache.timeRange === range && cache.minMagnitude === minMagnitude && (now - cache.timestamp) < CACHE_TTL) {
+      console.log(`Earthquakes: serving cached data (${range}, mag >= ${minMagnitude})`);
       return res.json(cache.data);
     }
 
@@ -110,7 +111,8 @@ router.get('/', async (req, res) => {
     cache = {
       data: result,
       timestamp: now,
-      timeRange: range
+      timeRange: range,
+      minMagnitude
     };
 
     console.log(`Earthquakes: ${earthquakes.length} events returned`);

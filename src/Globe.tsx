@@ -6,7 +6,7 @@ import type { WeatherDataPoint } from './types/weather';
 import type { PopulationDataPoint } from './types/population';
 import type { Earthquake } from './types/earthquake';
 import type { SatellitePosition, SatelliteCategory } from './types/satellite';
-import { SATELLITE_CATEGORIES, EARTH_RADIUS_KM } from './types/satellite';
+import { SATELLITE_CATEGORIES } from './types/satellite';
 import type { Flight, FlightCategory } from './types/flights';
 import { FLIGHT_CATEGORIES } from './types/flights';
 import { smoothFlightPath } from './utils/pathSmoothing';
@@ -45,9 +45,7 @@ import { usePollutionData } from './hooks/usePollutionData';
 import { useAuroraData } from './hooks/useAuroraData';
 import { useFlightData } from './hooks/useFlightData';
 import { useUrlState } from './hooks/useUrlState';
-import { getTemperatureColor } from './utils/weatherUtils';
 import { API_ENDPOINTS } from './config';
-import { getCountryFlag } from './utils/countryFlag';
 import { useSharedGeometries } from './hooks/useSharedGeometries';
 import { useGlobeLayers } from './hooks/useGlobeLayers';
 import GlobeCanvas from './components/globe/GlobeCanvas';
@@ -152,9 +150,11 @@ const GlobeComponent = () => {
       }
     }
     isInitialMount.current = false;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update URL when state changes (debounced)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isInitialMount.current) return;
 
@@ -481,7 +481,6 @@ const GlobeComponent = () => {
 
     // Different sizes for different categories
     const isISS = sat.category === 'iss';
-    const baseSize = isISS ? 1.5 : 0.4;
 
     // Main satellite body — share geometries, clone materials per instance
     if (isISS) {
@@ -737,9 +736,12 @@ const GlobeComponent = () => {
         gap: '10px',
         backdropFilter: 'blur(10px)',
       }}>
-        <span style={{ fontSize: '20px' }}>☀️</span>
+        <span style={{ fontSize: '20px' }} aria-hidden="true">☀️</span>
         <button
           onClick={() => setIsDayMode(!isDayMode)}
+          aria-label={isDayMode ? 'Switch to night mode' : 'Switch to day mode'}
+          aria-pressed={!isDayMode}
+          title={isDayMode ? 'Day mode — click for night' : 'Night mode — click for day'}
           style={{
             background: isDayMode ? '#4CAF50' : '#2196F3',
             border: 'none',
@@ -762,7 +764,7 @@ const GlobeComponent = () => {
             transition: 'left 0.3s',
           }} />
         </button>
-        <span style={{ fontSize: '20px' }}>🌙</span>
+        <span style={{ fontSize: '20px' }} aria-hidden="true">🌙</span>
       </div>
 
       {/* Search Bar */}

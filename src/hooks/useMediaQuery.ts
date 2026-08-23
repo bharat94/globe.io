@@ -51,16 +51,12 @@ export const useBreakpoint = (): Breakpoint => {
   return 'desktop';
 };
 
-// Check if touch device
+// Check if touch device — use lazy initializer to avoid setState in effect
 export const useIsTouchDevice = (): boolean => {
-  const [isTouch, setIsTouch] = useState(false);
-
-  useEffect(() => {
-    setIsTouch(
-      'ontouchstart' in window ||
-      navigator.maxTouchPoints > 0
-    );
-  }, []);
+  const [isTouch] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  });
 
   return isTouch;
 };
